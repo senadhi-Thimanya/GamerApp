@@ -1,3 +1,5 @@
+package helper;
+
 public class LoginHandler {
     public static boolean register() {
         // Registration logic here

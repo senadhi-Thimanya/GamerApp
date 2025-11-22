@@ -1,6 +1,11 @@
+package helper;
+
+import entity.Participant;
+import entity.PersonalityType;
+import entity.Team;
+
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.*;
 
 public class TeamBuilder {
 

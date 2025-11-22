@@ -1,3 +1,5 @@
+package entity;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,7 +60,7 @@ public class Team {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("=== Team ").append(teamId).append(" (Avg Skill: ")
+        sb.append("=== entity.Team ").append(teamId).append(" (Avg Skill: ")
                 .append(String.format("%.2f", getAverageSkill())).append(")\n");
         members.forEach(p -> sb.append("  - ").append(p.toString()).append("\n"));
         return sb.toString();

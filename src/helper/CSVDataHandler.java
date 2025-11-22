@@ -1,3 +1,9 @@
+package helper;
+
+import entity.Participant;
+import entity.Role;
+import entity.Team;
+
 import java.io.*;
 import java.util.*;
 
@@ -27,7 +33,7 @@ public class CSVDataHandler {
 
     public static void saveTeams(List<Team> teams, String filePath) throws IOException {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
-            bw.write("TeamID,MemberID,Name,PreferredGame,SkillLevel,Role,PersonalityType\n");
+            bw.write("TeamID,MemberID,Name,PreferredGame,SkillLevel,entity.Role,entity.PersonalityType\n");
             for (Team team : teams) {
                 for (Participant p : team.getMembers()) {
                     bw.write(String.format("%d,%s,%s,%s,%d,%s,%s\n",
