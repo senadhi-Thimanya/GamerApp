@@ -5,6 +5,7 @@ import helper.CSVDataHandler;
 import helper.LoginHandler;
 import helper.TeamBuilder;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -27,7 +28,12 @@ public class AdminInterface {
                 createEventTeamFormation();
                 break;
             case 2:
-                //View Teams
+                try {
+                    viewTeamFormation();
+                } catch (IOException e) {
+                    System.err.println("Failed to view team formation: " + e.getMessage());
+                    e.printStackTrace();
+                }
                 break;
             case 3:
                 //View Admin personal details
@@ -37,6 +43,9 @@ public class AdminInterface {
                 break;
             case 5:
                 //Update Team names
+                break;
+            case 6:
+                //View all Events
                 break;
             default:
                 System.out.println("Invalid option selected.");
@@ -51,6 +60,7 @@ public class AdminInterface {
         System.out.println("3. View Admin personal details");
         System.out.println("4. View All Gamers");
         System.out.println("5. Update Team names");
+        System.out.println("6. View all Events");
         System.out.print("Enter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
@@ -79,7 +89,7 @@ public class AdminInterface {
             teams.forEach(System.out::println);
 
             // need the event name as a csv name
-            CSVDataHandler.saveTeams(teams, event.getEventName()+"_team_formation.csv");
+            CSVDataHandler.saveTeams(teams, "TeamFormations/"+event.getEventName()+"_team_formation.csv");
             System.out.println("Teams saved...");
 
         } catch (Exception e) {
@@ -88,8 +98,27 @@ public class AdminInterface {
         }
     }
 
-    private static void viewTeamFormation() {
-        // Implementation for viewing team formations
+    private static void viewTeamFormation() throws IOException {
+        System.out.println("Viewing Team Formation...");
+        System.out.println("Enter Event Name to view teams: ");
+        String eventName = sc.nextLine().trim();
+
+        String filePath = "TeamFormations/" + eventName + "_team_formation.csv";
+        System.out.println(filePath);
+        java.io.File file = new java.io.File(filePath);
+
+        if (!file.exists() || !file.isFile()) {
+            System.out.println("Event team file not found: " + filePath);
+            return;
+        }
+
+        try {
+            List<Team> teams = CSVDataHandler.loadTeams(filePath);
+            teams.forEach(System.out::println);
+        } catch (Exception e) {
+            System.err.println("Error reading teams from " + filePath + ": " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private static void viewAllGamers() {
@@ -110,5 +139,9 @@ public class AdminInterface {
 
     private static void updateAdminDetails() {
         // Implementation for updating admin details
+    }
+
+    private static void viewAllEvents() {
+        // Implementation for viewing all events
     }
 }
