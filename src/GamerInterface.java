@@ -1,3 +1,4 @@
+import entity.Event;
 import entity.Team;
 import helper.CSVDataHandler;
 import helper.LoginHandler;
@@ -33,6 +34,8 @@ public class GamerInterface {
             case 4:
                 //Update personal details
                 break;
+            case 5:
+                //View all Events
             default:
                 System.out.println("Invalid option selected.");
         }
@@ -44,6 +47,7 @@ public class GamerInterface {
         System.out.println("2. View Team Assignment"); // per event. So name of the event needed
         System.out.println("3. View personal details");
         System.out.println("4. Update personal details");
+        System.out.println("5. View all Events");
         System.out.print("Enter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
@@ -113,6 +117,23 @@ public class GamerInterface {
 
         } catch (IOException e) {
             System.err.println("Error reading team formation: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void viewEvents(){
+        System.out.println("=== All Events ===");
+        try {
+            List<Event> events = CSVDataHandler.loadEvents("TeamFormations/");
+            if (events == null || events.isEmpty()) {
+                System.out.println("No events found.");
+                return;
+            }
+            for (int i = 0; i < events.size(); i++) {
+                System.out.println((i + 1) + ". " + events.get(i));
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading events: " + e.getMessage());
             e.printStackTrace();
         }
     }

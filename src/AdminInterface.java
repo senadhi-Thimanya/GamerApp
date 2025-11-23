@@ -45,7 +45,7 @@ public class AdminInterface {
                 //Update Team names
                 break;
             case 6:
-                //View all Events
+                GamerInterface.viewEvents();
                 break;
             default:
                 System.out.println("Invalid option selected.");
@@ -137,9 +137,5 @@ public class AdminInterface {
 
     private static void updateAdminDetails() {
         // Implementation for updating admin details
-    }
-
-    private static void viewAllEvents() {
-        // Implementation for viewing all events
     }
 }
