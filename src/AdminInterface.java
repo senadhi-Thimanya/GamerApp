@@ -53,7 +53,6 @@ public class AdminInterface {
     }
 
     public static int getAdminOptions() {
-        Scanner sc = new Scanner(System.in);
         System.out.println("Admin Options:");
         System.out.println("1. Create new Event Team Formation");
         System.out.println("2. View Teams");
@@ -104,7 +103,6 @@ public class AdminInterface {
         String eventName = sc.nextLine().trim();
 
         String filePath = "TeamFormations/" + eventName + "_team_formation.csv";
-        System.out.println(filePath);
         java.io.File file = new java.io.File(filePath);
 
         if (!file.exists() || !file.isFile()) {

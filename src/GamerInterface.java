@@ -1,18 +1,119 @@
+import entity.Team;
+import helper.CSVDataHandler;
 import helper.LoginHandler;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Scanner;
 
+import static helper.SurveyHandler.conductSurvey;
+
 public class GamerInterface {
+    private static final Scanner sc = new Scanner(System.in);
+
     public static void launch() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Are you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
+        System.out.print("Are you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
         String choice = sc.nextLine().trim();
-        if (choice.equals("1")) {
-            LoginHandler.Login();
-        } else if (choice.equals("2")) {
-            LoginHandler.register();
-        } else {
-            System.out.println("Invalid choice. Exiting application.");
+
+        if (choice.equals("1")) LoginHandler.Login();
+        else if (choice.equals("2")) LoginHandler.register(); // get the personal details first
+        else System.out.println("Invalid choice. Exiting application.");
+
+        int option = getAdminOptions();
+        switch (option){
+            case 1:
+                conductSurvey();
+                break;
+            case 2:
+                viewTeamAssignment();
+                break;
+            case 3:
+                //View personal details
+                break;
+            case 4:
+                //Update personal details
+                break;
+            default:
+                System.out.println("Invalid option selected.");
+        }
+    }
+
+    public static int getAdminOptions() {
+        System.out.println("Gamer Options:");
+        System.out.println("1. Take the Survey"); // Will update details if already a user
+        System.out.println("2. View Team Assignment"); // per event. So name of the event needed
+        System.out.println("3. View personal details");
+        System.out.println("4. Update personal details");
+        System.out.print("Enter your choice: ");
+        int choice = sc.nextInt();
+        sc.nextLine(); // Consume newline
+        return choice;
+    }
+
+    public static void takeSurvey() {
+        System.out.println("Taking Survey...");
+        conductSurvey();
+    }
+
+    public static void viewTeamAssignment() {
+        System.out.println("=== View Team Assignment ===");
+
+        // Ask for event name
+        System.out.print("Enter Event Name: ");
+        String eventName = sc.nextLine().trim();
+
+        // Ask for participant ID
+        System.out.print("Enter your Participant ID: ");
+        String participantId = sc.nextLine().trim();
+
+        // Construct the file path
+        String filePath = "TeamFormations/" + eventName + "_team_formation.csv";
+
+        // Check if file exists
+        java.io.File file = new java.io.File(filePath);
+        if (!file.exists() || !file.isFile()) {
+            System.out.println("Error: No team formation found for event '" + eventName + "'");
+            System.out.println("Please check the event name and try again.");
+            return;
+        }
+
+        try {
+            // Load teams from the event file
+            List<Team> teams = CSVDataHandler.loadTeams(filePath);
+
+            // Search for the participant in the teams
+            boolean found = false;
+            for (Team team : teams) {
+                for (entity.Participant p : team.getMembers()) {
+                    if (p.getId().equals(participantId)) {
+                        found = true;
+                        System.out.println("\n=== Your Team Assignment ===");
+                        System.out.println("Event: " + eventName);
+                        System.out.println("Team ID: " + team.getTeamId());
+                        System.out.println("Team Average Skill: " + String.format("%.2f", team.getAverageSkill()));
+                        System.out.println("\n--- Your Details ---");
+                        System.out.println(p.toString());
+                        System.out.println("\n--- Your Teammates ---");
+                        for (entity.Participant teammate : team.getMembers()) {
+                            if (!teammate.getId().equals(participantId)) {
+                                System.out.println("  " + teammate.toString());
+                            }
+                        }
+                        System.out.println("\n=========================");
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+
+            if (!found) {
+                System.out.println("Participant ID '" + participantId + "' not found in event '" + eventName + "'");
+                System.out.println("Please verify your ID and ensure you're registered for this event.");
+            }
+
+        } catch (IOException e) {
+            System.err.println("Error reading team formation: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

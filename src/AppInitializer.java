@@ -13,7 +13,7 @@ public class AppInitializer {
                 "                                                     ");
         System.out.println("Welcome to TeamMate - IIT E-sports Club Gaming Platform!\n");
 
-        System.out.println("Are you a 1. Gamer or an 2. Admin? (Enter 1 or 2): ");
+        System.out.print("Are you a 1. Gamer or an 2. Admin? (Enter 1 or 2): ");
         String roleChoice = sc.nextLine().trim();
         if (roleChoice.equals("1")) {
             GamerInterface.launch();
