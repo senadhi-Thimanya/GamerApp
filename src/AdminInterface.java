@@ -15,12 +15,9 @@ public class AdminInterface {
     public static void launch() {
         //Admin has to be a club member
 
-        System.out.println("Are you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
-        String choice = sc.nextLine().trim();
-
-        if (choice.equals("1")) LoginHandler.Login();
-        else if (choice.equals("2")) LoginHandler.register();
-        else System.out.println("Invalid choice. Exiting application.");
+        System.out.print("What is your ID? ");
+        String id = sc.nextLine().trim();
+        if (!LoginHandler.adminLogin(id)) return; //if id ! then quit
 
         int option = getAdminOptions();
         switch (option){
@@ -36,15 +33,9 @@ public class AdminInterface {
                 }
                 break;
             case 3:
-                //View Admin personal details
+                //View all gamers
                 break;
             case 4:
-                //View All Gamers
-                break;
-            case 5:
-                //Update Team names
-                break;
-            case 6:
                 GamerInterface.viewEvents();
                 break;
             default:
@@ -56,10 +47,9 @@ public class AdminInterface {
         System.out.println("Admin Options:");
         System.out.println("1. Create new Event Team Formation");
         System.out.println("2. View Teams");
-        System.out.println("3. View Admin personal details");
-        System.out.println("4. View All Gamers");
-        System.out.println("5. Update Team names");
-        System.out.println("6. View all Events");
+        System.out.println("3. View All Gamers");
+        System.out.println("4. View all Events");
+        System.out.println("5. Delete Team Formation");
         System.out.print("Enter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
@@ -123,19 +113,7 @@ public class AdminInterface {
         // Implementation for viewing all gamers
     }
 
-    private static void updateTeamFormation() {
-        // Implementation for updating team formations
-    }
-
     private static void deleteTeamFormation() {
         // Implementation for deleting team formations
-    }
-
-    private static void deleteAllGamers() {
-        // Implementation for deleting all gamers
-    }
-
-    private static void updateAdminDetails() {
-        // Implementation for updating admin details
     }
 }

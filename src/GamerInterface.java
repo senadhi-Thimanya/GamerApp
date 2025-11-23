@@ -16,11 +16,22 @@ public class GamerInterface {
         System.out.print("Are you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
         String choice = sc.nextLine().trim();
 
-        if (choice.equals("1")) LoginHandler.Login();
-        else if (choice.equals("2")) LoginHandler.register(); // get the personal details first
-        else System.out.println("Invalid choice. Exiting application.");
+        if (choice.equals("1")) {
+            System.out.print("What is your id? ");
+            String id = sc.nextLine().trim();
+            if (LoginHandler.gamerLogin(id)) System.out.println("Login successful. Welcome back!");
+            else {
+                System.out.println("Login failed. Exiting application.");
+                return;
+            }
+        }
+        else if (choice.equals("2")) LoginHandler.gamerRegister(); // get the personal details first
+        else {
+            System.out.println("Invalid choice. Exiting application.");
+            return;
+        }
 
-        int option = getAdminOptions();
+        int option = getUserOptions();
         switch (option){
             case 1:
                 conductSurvey();
@@ -29,34 +40,24 @@ public class GamerInterface {
                 viewTeamAssignment();
                 break;
             case 3:
-                //View personal details
+                viewEvents();
                 break;
-            case 4:
-                //Update personal details
-                break;
-            case 5:
-                //View all Events
             default:
                 System.out.println("Invalid option selected.");
         }
     }
 
-    public static int getAdminOptions() {
+    public static int getUserOptions() {
         System.out.println("Gamer Options:");
         System.out.println("1. Take the Survey"); // Will update details if already a user
         System.out.println("2. View Team Assignment"); // per event. So name of the event needed
-        System.out.println("3. View personal details");
-        System.out.println("4. Update personal details");
-        System.out.println("5. View all Events");
+        // System.out.println("3. View personal details"); //Shouldn't be changeable
+        // System.out.println("4. Update personal details");
+        System.out.println("3. View all Events");
         System.out.print("Enter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
         return choice;
-    }
-
-    public static void takeSurvey() {
-        System.out.println("Taking Survey...");
-        conductSurvey();
     }
 
     public static void viewTeamAssignment() {

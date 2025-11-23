@@ -4,23 +4,24 @@ import entity.Participant;
 import entity.PersonalityType;
 import entity.Role;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class SurveyHandler {
     private static final Scanner sc = new Scanner(System.in);
     private static final String PARTICIPANTS_FILE = "participants.csv";
 
+    /**
+     * Conducts survey for existing users (updates their information)
+     */
     public static void conductSurvey() {
         System.out.println("\n=== Gaming Club Survey ===");
         System.out.println("This survey will help us understand your gaming preferences and personality.\n");
 
-        // Get participant ID (assuming they're already logged in or registered)
         System.out.print("Enter your Participant ID: ");
         String participantId = sc.nextLine().trim();
 
-        // Check if participant exists
-        Participant existingParticipant = LoginHandler.gamerLogin(participantId);
+        Participant existingParticipant = LoginHandler.userExists(participantId);
         if (existingParticipant == null) {
             System.out.println("Participant ID not found. Please register first.");
             return;
@@ -28,44 +29,84 @@ public class SurveyHandler {
 
         System.out.println("Welcome, " + existingParticipant.getName() + "!\n");
 
-        // Conduct personality survey
-        int personalityScore = conductPersonalitySurvey();
-
-        // Get game preference
-        String preferredGame = getGamePreference();
-
-        // Get preferred role
-        Role preferredRole = getPreferredRole();
-
-        // Get skill level
-        int skillLevel = getSkillLevel();
+        // Collect survey data
+        SurveyData data = collectSurveyData();
 
         // Create updated participant
         Participant updatedParticipant = new Participant(
                 existingParticipant.getId(),
                 existingParticipant.getName(),
                 existingParticipant.getEmail(),
-                preferredGame,
-                skillLevel,
-                preferredRole,
-                personalityScore
+                data.preferredGame,
+                data.skillLevel,
+                data.preferredRole,
+                data.personalityScore
         );
 
-        // Save updated participant data using CSVDataHandler
+        // Save updated participant data
         try {
             CSVDataHandler.updateParticipant(updatedParticipant, PARTICIPANTS_FILE);
-            System.out.println("\n=== Survey Complete! ===");
-            System.out.println("Your Profile:");
-            System.out.println("  Personality Score: " + personalityScore);
-            System.out.println("  Personality Type: " + updatedParticipant.getPersonalityType());
-            System.out.println("  Preferred Game: " + preferredGame);
-            System.out.println("  Skill Level: " + skillLevel + "/10");
-            System.out.println("  Preferred Role: " + preferredRole);
-            System.out.println("\nYour information has been updated successfully!");
+            displaySurveyResults(updatedParticipant, "updated");
         } catch (IOException e) {
             System.err.println("Error saving survey results: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Conducts survey for new users during registration
+     */
+    public static Participant conductSurveyForNewUser(String id, String name, String email) {
+        System.out.println("=== Complete Your Profile ===\n");
+
+        // Collect survey data
+        SurveyData data = collectSurveyData();
+
+        // Create new participant object
+        Participant newParticipant = new Participant(
+                id,
+                name,
+                email,
+                data.preferredGame,
+                data.skillLevel,
+                data.preferredRole,
+                data.personalityScore
+        );
+
+        // Display summary
+        System.out.println("\n=== Profile Summary ===");
+        System.out.println("ID: " + id);
+        System.out.println("Name: " + name);
+        System.out.println("Email: " + email);
+        displaySurveyResults(newParticipant, "created");
+
+        return newParticipant;
+    }
+
+    /**
+     * Collects all survey data and returns it in a SurveyData object
+     */
+    private static SurveyData collectSurveyData() {
+        SurveyData data = new SurveyData();
+        data.personalityScore = conductPersonalitySurvey();
+        data.preferredGame = getGamePreference();
+        data.preferredRole = getPreferredRole();
+        data.skillLevel = getSkillLevel();
+        return data;
+    }
+
+    /**
+     * Displays survey results in a consistent format
+     */
+    private static void displaySurveyResults(Participant participant, String action) {
+        System.out.println("\n=== Survey Complete! ===");
+        System.out.println("Your Profile:");
+        System.out.println("  Personality Score: " + participant.getPersonalityScore());
+        System.out.println("  Personality Type: " + participant.getPersonalityType());
+        System.out.println("  Preferred Game: " + participant.getPreferredGame());
+        System.out.println("  Skill Level: " + participant.getSkillLevel() + "/10");
+        System.out.println("  Preferred Role: " + participant.getPreferredRole());
+        System.out.println("\nYour information has been " + action + " successfully!");
     }
 
     private static int conductPersonalitySurvey() {
@@ -81,22 +122,16 @@ public class SurveyHandler {
         };
 
         int totalScore = 0;
-
         for (int i = 0; i < questions.length; i++) {
             System.out.println("Q" + (i + 1) + ": " + questions[i]);
-            int response = getValidRating();
-            totalScore += response;
+            totalScore += getValidRating();
             System.out.println();
         }
 
-        // Scale to 100
         int scaledScore = totalScore * 4;
-
         System.out.println("Raw Score: " + totalScore + "/25");
         System.out.println("Scaled Score: " + scaledScore + "/100");
-
-        PersonalityType type = Participant.calculatePersonalityType(scaledScore);
-        System.out.println("Your Personality Type: " + type);
+        System.out.println("Your Personality Type: " + Participant.calculatePersonalityType(scaledScore));
         System.out.println();
 
         return scaledScore;
@@ -109,9 +144,8 @@ public class SurveyHandler {
                 int rating = Integer.parseInt(sc.nextLine().trim());
                 if (rating >= 1 && rating <= 5) {
                     return rating;
-                } else {
-                    System.out.println("Please enter a number between 1 and 5.");
                 }
+                System.out.println("Please enter a number between 1 and 5.");
             } catch (NumberFormatException e) {
                 System.out.println("Invalid input. Please enter a number between 1 and 5.");
             }
@@ -121,15 +155,12 @@ public class SurveyHandler {
     private static String getGamePreference() {
         System.out.println("--- Game Preference ---");
         System.out.println("Select your preferred game:");
-        System.out.println("1. Valorant");
-        System.out.println("2. Dota");
-        System.out.println("3. FIFA");
-        System.out.println("4. CS:GO");
-        System.out.println("5. League of Legends");
-        System.out.println("6. Overwatch");
-        System.out.println("7. Other");
-
         String[] games = {"Valorant", "Dota", "FIFA", "CS:GO", "League of Legends", "Overwatch"};
+
+        for (int i = 0; i < games.length; i++) {
+            System.out.println((i + 1) + ". " + games[i]);
+        }
+        System.out.println("7. Other");
 
         while (true) {
             System.out.print("Enter your choice (1-7): ");
@@ -143,9 +174,8 @@ public class SurveyHandler {
                     String customGame = sc.nextLine().trim();
                     System.out.println("Selected: " + customGame + "\n");
                     return customGame;
-                } else {
-                    System.out.println("Please enter a number between 1 and 7.");
                 }
+                System.out.println("Please enter a number between 1 and 7.");
             } catch (NumberFormatException e) {
                 System.out.println("Invalid input. Please enter a number between 1 and 7.");
             }
@@ -155,13 +185,19 @@ public class SurveyHandler {
     private static Role getPreferredRole() {
         System.out.println("--- Preferred Role ---");
         System.out.println("Select your preferred playing role:");
-        System.out.println("1. STRATEGIST - Plans and coordinates team strategy");
-        System.out.println("2. ATTACKER - Focuses on offensive plays");
-        System.out.println("3. DEFENDER - Protects and holds positions");
-        System.out.println("4. SUPPORTER - Assists and enables teammates");
-        System.out.println("5. COORDINATOR - Manages team communication and timing");
 
         Role[] roles = {Role.STRATEGIST, Role.ATTACKER, Role.DEFENDER, Role.SUPPORTER, Role.COORDINATOR};
+        String[] descriptions = {
+                "Plans and coordinates team strategy",
+                "Focuses on offensive plays",
+                "Protects and holds positions",
+                "Assists and enables teammates",
+                "Manages team communication and timing"
+        };
+
+        for (int i = 0; i < roles.length; i++) {
+            System.out.println((i + 1) + ". " + roles[i] + " - " + descriptions[i]);
+        }
 
         while (true) {
             System.out.print("Enter your choice (1-5): ");
@@ -170,9 +206,8 @@ public class SurveyHandler {
                 if (choice >= 1 && choice <= 5) {
                     System.out.println("Selected: " + roles[choice - 1] + "\n");
                     return roles[choice - 1];
-                } else {
-                    System.out.println("Please enter a number between 1 and 5.");
                 }
+                System.out.println("Please enter a number between 1 and 5.");
             } catch (NumberFormatException e) {
                 System.out.println("Invalid input. Please enter a number between 1 and 5.");
             }
@@ -182,10 +217,7 @@ public class SurveyHandler {
     private static int getSkillLevel() {
         System.out.println("--- Skill Level ---");
         System.out.println("Rate your gaming skill level (1-10):");
-        System.out.println("1-3: Beginner");
-        System.out.println("4-6: Intermediate");
-        System.out.println("7-8: Advanced");
-        System.out.println("9-10: Expert");
+        System.out.println("1-3: Beginner | 4-6: Intermediate | 7-8: Advanced | 9-10: Expert");
 
         while (true) {
             System.out.print("Enter your skill level (1-10): ");
@@ -194,12 +226,21 @@ public class SurveyHandler {
                 if (skillLevel >= 1 && skillLevel <= 10) {
                     System.out.println("Skill Level: " + skillLevel + "/10\n");
                     return skillLevel;
-                } else {
-                    System.out.println("Please enter a number between 1 and 10.");
                 }
+                System.out.println("Please enter a number between 1 and 10.");
             } catch (NumberFormatException e) {
                 System.out.println("Invalid input. Please enter a number between 1 and 10.");
             }
         }
+    }
+
+    /**
+     * Inner class to hold survey data
+     */
+    private static class SurveyData {
+        int personalityScore;
+        String preferredGame;
+        Role preferredRole;
+        int skillLevel;
     }
 }

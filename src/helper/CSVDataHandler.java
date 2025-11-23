@@ -1,9 +1,6 @@
 package helper;
 
-import entity.Event;
-import entity.Participant;
-import entity.Role;
-import entity.Team;
+import entity.*;
 
 import java.io.*;
 import java.util.*;
@@ -30,6 +27,24 @@ public class CSVDataHandler {
             }
         }
         return participants;
+    }
+
+    public static List<Admin> loadAdmins(String filePath) throws IOException {
+        List<Admin> admins = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            br.readLine(); // skip header
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",");
+                Admin a = new Admin(
+                        values[0].trim(),
+                        values[1].trim(),
+                        values[2].trim()
+                );
+                admins.add(a);
+            }
+        }
+        return admins;
     }
 
     public static List<Event> loadEvents(String directoryPath) throws IOException {
@@ -134,6 +149,26 @@ public class CSVDataHandler {
         return null; // Participant not found
     }
 
+    public static Admin findAdminById(String id, String filePath) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            br.readLine(); // skip header
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] values = line.split(",");
+                if (values.length >= 3 && values[0].trim().equals(id)) {
+                    return new Admin(
+                            values[0].trim(),  // id
+                            values[1].trim(),  // name
+                            values[2].trim()   // email
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Updates a participant's information in the CSV file
      */
@@ -201,6 +236,40 @@ public class CSVDataHandler {
         }
         input = input.toLowerCase(); // Convert the entire string to lowercase
         return input.substring(0, 1).toUpperCase() + input.substring(1); // Capitalize the first letter
+    }
+
+    /**
+     * Generates a new participant ID by reading the last ID from CSV and incrementing
+     */
+    public static String generateNewParticipantId(String filePath) throws IOException {
+        File file = new File(filePath);
+
+        // If file doesn't exist, start with P001
+        if (!file.exists()) {
+            return "P001";
+        }
+
+        String lastId = "P000";
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            br.readLine(); // skip header
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                String[] values = line.split(",");
+                if (values.length > 0) {
+                    lastId = values[0].trim();
+                }
+            }
+        }
+
+        // Extract number from last ID and increment
+        // Assumes format like P001, P002, etc.
+        String numPart = lastId.substring(1); // Remove 'P'
+        int num = Integer.parseInt(numPart);
+        num++;
+
+        // Format with leading zeros (e.g., P001, P002, ..., P099, P100)
+        return String.format("P%03d", num);
     }
 
     /**
