@@ -106,4 +106,127 @@ public class CSVDataHandler {
             }
         }
     }
+
+    /**
+     * Finds and returns a participant by ID from the CSV file
+     */
+    public static Participant findParticipantById(String id, String filePath) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            br.readLine(); // skip header
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] values = line.split(",");
+                if (values.length >= 7 && values[0].trim().equals(id)) {
+                    return new Participant(
+                            values[0].trim(),  // id
+                            values[1].trim(),  // name
+                            values[2].trim(),  // email
+                            values[3].trim(),  // preferredGame
+                            Integer.parseInt(values[4].trim()),  // skillLevel
+                            Role.valueOf(values[5].trim().toUpperCase()),  // preferredRole
+                            Integer.parseInt(values[6].trim())  // personalityScore
+                    );
+                }
+            }
+        }
+        return null; // Participant not found
+    }
+
+    /**
+     * Updates a participant's information in the CSV file
+     */
+    public static void updateParticipant(Participant updatedParticipant, String filePath) throws IOException {
+        File inputFile = new File(filePath);
+        File tempFile = new File(filePath.replace(".csv", "_temp.csv"));
+
+        boolean participantFound = false;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+
+            String line;
+            // Copy header
+            line = reader.readLine();
+            if (line != null) {
+                writer.write(line);
+                writer.newLine();
+            }
+
+            // Process each line
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] values = line.split(",");
+                if (values.length > 0 && values[0].trim().equals(updatedParticipant.getId())) {
+                    // Write updated participant data
+                    writer.write(String.format("%s,%s,%s,%s,%d,%s,%d,%s",
+                            updatedParticipant.getId(),
+                            updatedParticipant.getName(),
+                            updatedParticipant.getEmail(),
+                            updatedParticipant.getPreferredGame(),
+                            updatedParticipant.getSkillLevel(),
+                            toSentenceCase(String.valueOf(updatedParticipant.getPreferredRole())),
+                            updatedParticipant.getPersonalityScore(),
+                            toSentenceCase(String.valueOf(updatedParticipant.getPersonalityType()))));
+                    writer.newLine();
+                    participantFound = true;
+                } else {
+                    // Copy existing line
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
+        }
+
+        // Replace original file with updated file
+        if (participantFound) {
+            if (!inputFile.delete()) {
+                throw new IOException("Could not delete original file");
+            }
+            if (!tempFile.renameTo(inputFile)) {
+                throw new IOException("Could not rename temp file");
+            }
+        } else {
+            tempFile.delete();
+            throw new IOException("Participant not found in CSV");
+        }
+    }
+
+    //To change the THINKER to Thinker
+    public static String toSentenceCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input; // Return as is if input is null or empty
+        }
+        input = input.toLowerCase(); // Convert the entire string to lowercase
+        return input.substring(0, 1).toUpperCase() + input.substring(1); // Capitalize the first letter
+    }
+
+    /**
+     * Adds a new participant to the CSV file
+     */
+    public static void addParticipant(Participant participant, String filePath) throws IOException {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath, true))) {
+            bw.write(String.format("%s,%s,%s,%s,%d,%s,%d\n",
+                    participant.getId(),
+                    participant.getName(),
+                    participant.getEmail(),
+                    participant.getPreferredGame(),
+                    participant.getSkillLevel(),
+                    participant.getPreferredRole(),
+                    participant.getPersonalityScore()));
+        }
+    }
+
+    /**
+     * Checks if a participant ID already exists in the CSV
+     */
+    public static boolean participantExists(String id, String filePath) {
+        try {
+            return findParticipantById(id, filePath) != null;
+        } catch (IOException e) {
+            return false;
+        }
+    }
 }
