@@ -33,10 +33,16 @@ public class AdminInterface {
                 }
                 break;
             case 3:
-                //View all gamers
+                viewAllGamers();
                 break;
             case 4:
                 GamerInterface.viewEvents();
+                break;
+            case 5:
+
+                break;
+            case 6:
+                viewLeftoverParticipants();
                 break;
             default:
                 System.out.println("Invalid option selected.");
@@ -50,6 +56,7 @@ public class AdminInterface {
         System.out.println("3. View All Gamers");
         System.out.println("4. View all Events");
         System.out.println("5. Delete Team Formation");
+        System.out.println("6. View Leftover Participants");
         System.out.print("Enter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
@@ -110,10 +117,39 @@ public class AdminInterface {
     }
 
     private static void viewAllGamers() {
-        // Implementation for viewing all gamers
+        System.out.println("\n=== All Registered Gamers ===");
+        try {
+            List<Participant> participants = CSVDataHandler.loadParticipants("participants.csv");
+            if (participants.isEmpty()) {
+                System.out.println("No gamers registered yet.");
+            } else {
+                System.out.println("Total Gamers: " + participants.size() + "\n");
+                for (int i = 0; i < participants.size(); i++) {
+                    System.out.println((i + 1) + ". " + participants.get(i).toString());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading participants: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private static void deleteTeamFormation() {
         // Implementation for deleting team formations
+    }
+
+    private static void viewLeftoverParticipants() {
+        System.out.println("\n=== Leftover Participants ===");
+        if (TeamBuilder.hasLeftovers()) {
+            List<Participant> leftovers = TeamBuilder.getLeftoverParticipants();
+            System.out.println("The following participants are waiting to be assigned to teams:\n");
+            for (int i = 0; i < leftovers.size(); i++) {
+                System.out.println((i + 1) + ". " + leftovers.get(i).toString());
+            }
+            System.out.println("\nTotal Leftovers: " + leftovers.size());
+        } else {
+            System.out.println("No leftover participants. All participants have been assigned to teams.");
+        }
+        System.out.println("=============================\n");
     }
 }
