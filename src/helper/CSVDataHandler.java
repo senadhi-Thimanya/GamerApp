@@ -299,4 +299,71 @@ public class CSVDataHandler {
         }
     }
 
+    /**
+     * Gets a participant's complete details by ID
+     */
+    public static Participant getParticipantDetails(String id, String filePath) throws IOException {
+        return findParticipantById(id, filePath);
+    }
+
+    /**
+     * Updates only name and email for a participant
+     */
+    public static void updateParticipantNameEmail(String id, String newName, String newEmail, String filePath) throws IOException {
+        File inputFile = new File(filePath);
+        File tempFile = new File(filePath.replace(".csv", "_temp.csv"));
+
+        boolean participantFound = false;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+
+            String line;
+            // Copy header
+            line = reader.readLine();
+            if (line != null) {
+                writer.write(line);
+                writer.newLine();
+            }
+
+            // Process each line
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] values = line.split(",");
+                if (values.length >= 7 && values[0].trim().equals(id)) {
+                    // Update only name and email, keep everything else
+                    writer.write(String.format("%s,%s,%s,%s,%s,%s,%s,%s",
+                            values[0].trim(),  // ID (unchanged)
+                            newName,           // Updated name
+                            newEmail,          // Updated email
+                            values[3].trim(),  // PreferredGame (unchanged)
+                            values[4].trim(),  // SkillLevel (unchanged)
+                            values[5].trim(),  // Role (unchanged)
+                            values[6].trim(),  // PersonalityScore (unchanged)
+                            values.length > 7 ? values[7].trim() : "")); // PersonalityType if exists
+                    writer.newLine();
+                    participantFound = true;
+                } else {
+                    // Copy existing line
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
+        }
+
+        // Replace original file with updated file
+        if (participantFound) {
+            if (!inputFile.delete()) {
+                throw new IOException("Could not delete original file");
+            }
+            if (!tempFile.renameTo(inputFile)) {
+                throw new IOException("Could not rename temp file");
+            }
+        } else {
+            tempFile.delete();
+            throw new IOException("Participant not found in CSV");
+        }
+    }
+
 }

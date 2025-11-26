@@ -19,6 +19,21 @@ public class AdminInterface {
         String id = sc.nextLine().trim();
         if (!LoginHandler.adminLogin(id)) return; //if id ! then quit
 
+        adminMenu();
+        while(true) {
+            System.out.print("Do you want to perform another action? 1. yes 2. no : ");
+            String again = sc.nextLine().trim().toLowerCase();
+            if (again.equals("1")) {
+                adminMenu();
+            } else {
+                System.out.println("Exiting Admin Interface. Goodbye!");
+                break;
+            }
+
+        }
+    }
+
+    public static void adminMenu(){
         int option = getAdminOptions();
         switch (option){
             case 1:

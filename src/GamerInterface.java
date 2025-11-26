@@ -31,6 +31,22 @@ public class GamerInterface {
             return;
         }
 
+        gamerMenu();
+        while(true) {
+            System.out.print("Do you want to perform another action? 1. yes 2. no : ");
+            String again = sc.nextLine().trim().toLowerCase();
+            if (again.equals("1")) {
+                gamerMenu();
+            } else {
+                System.out.println("Exiting Gamer Interface. Goodbye!");
+                break;
+            }
+
+        }
+
+    }
+
+    public static void gamerMenu() {
         int option = getUserOptions();
         switch (option){
             case 1:
@@ -40,6 +56,12 @@ public class GamerInterface {
                 viewTeamAssignment();
                 break;
             case 3:
+                viewPersonalDetails();
+                break;
+            case 4:
+                updatePersonalDetails();
+                break;
+            case 5:
                 viewEvents();
                 break;
             default:
@@ -51,9 +73,9 @@ public class GamerInterface {
         System.out.println("Gamer Options:");
         System.out.println("1. Take the Survey"); // Will update details if already a user
         System.out.println("2. View Team Assignment"); // per event. So name of the event needed
-        // System.out.println("3. View personal details"); //Shouldn't be changeable
-        // System.out.println("4. Update personal details");
-        System.out.println("3. View all Events");
+        System.out.println("3. View personal details");
+        System.out.println("4. Update personal details");
+        System.out.println("5. View all Events");
         System.out.print("Enter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
@@ -135,6 +157,104 @@ public class GamerInterface {
             }
         } catch (IOException e) {
             System.err.println("Error loading events: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void viewPersonalDetails() {
+        System.out.println("\n=== View Personal Details ===");
+        System.out.print("Enter your Participant ID: ");
+        String id = sc.nextLine().trim();
+
+        try {
+            entity.Participant participant = CSVDataHandler.getParticipantDetails(id, "participants.csv");
+
+            if (participant == null) {
+                System.out.println("Participant ID '" + id + "' not found.");
+                return;
+            }
+
+            System.out.println("\n--- Your Details ---");
+            System.out.println("ID: " + participant.getId() + " (non-editable)");
+            System.out.println("Name: " + participant.getName());
+            System.out.println("Email: " + participant.getEmail());
+            System.out.println("Preferred Game: " + participant.getPreferredGame());
+            System.out.println("Skill Level: " + participant.getSkillLevel() + "/10");
+            System.out.println("Preferred Role: " + participant.getPreferredRole());
+            System.out.println("Personality Score: " + participant.getPersonalityScore());
+            System.out.println("Personality Type: " + participant.getPersonalityType());
+            System.out.println("====================\n");
+
+        } catch (IOException e) {
+            System.err.println("Error loading participant details: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void updatePersonalDetails() {
+        System.out.println("\n=== Update Personal Details ===");
+        System.out.print("Enter your Participant ID: ");
+        String id = sc.nextLine().trim();
+
+        try {
+            entity.Participant participant = CSVDataHandler.getParticipantDetails(id, "participants.csv");
+
+            if (participant == null) {
+                System.out.println("Participant ID '" + id + "' not found.");
+                return;
+            }
+
+            System.out.println("\nCurrent Details:");
+            System.out.println("ID: " + participant.getId() + " (non-editable)");
+            System.out.println("Name: " + participant.getName());
+            System.out.println("Email: " + participant.getEmail());
+
+            System.out.println("\n--- Update Information ---");
+            System.out.println("Press Enter to keep current value");
+
+            // Update name
+            System.out.print("Enter new name (current: " + participant.getName() + "): ");
+            String newName = sc.nextLine().trim();
+            if (newName.isEmpty()) {
+                newName = participant.getName();
+            }
+
+            // Update email with validation
+            String newEmail;
+            while (true) {
+                System.out.print("Enter new email (current: " + participant.getEmail() + "): ");
+                newEmail = sc.nextLine().trim();
+
+                if (newEmail.isEmpty()) {
+                    newEmail = participant.getEmail();
+                    break;
+                }
+
+                // Validate email format: name@university.edu
+                if (newEmail.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.edu$")) {
+                    break;
+                } else {
+                    System.out.println("Invalid email format. Please use format: name@university.edu");
+                }
+            }
+
+            // Confirm changes
+            System.out.println("\nNew Details:");
+            System.out.println("Name: " + newName);
+            System.out.println("Email: " + newEmail);
+            System.out.print("\nConfirm changes? (yes/no): ");
+            String confirm = sc.nextLine().trim().toLowerCase();
+
+            if (confirm.equals("yes") || confirm.equals("y")) {
+                CSVDataHandler.updateParticipantNameEmail(id, newName, newEmail, "participants.csv");
+                System.out.println("\nPersonal details updated successfully!");
+            } else {
+                System.out.println("\nUpdate cancelled.");
+            }
+            System.out.println("===============================\n");
+
+        } catch (IOException e) {
+            System.err.println("Error updating participant details: " + e.getMessage());
             e.printStackTrace();
         }
     }
