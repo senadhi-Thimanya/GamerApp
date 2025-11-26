@@ -88,6 +88,10 @@ public class CSVDataHandler {
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(",");
                 int teamId = Integer.parseInt(values[0].trim());
+
+                // Skip leftovers (TeamID = 0)
+                if (teamId == 0) continue;
+
                 Participant p = new Participant(
                         values[1].trim(),  // MemberID
                         values[2].trim(),  // Name
@@ -95,7 +99,7 @@ public class CSVDataHandler {
                         values[3].trim(),  // PreferredGame
                         Integer.parseInt(values[4].trim()),  // SkillLevel
                         Role.valueOf(values[5].trim().toUpperCase()),  // Role
-                        Integer.parseInt(values[6].trim())  // PersonalityScore (note: column says PersonalityType but value is score)
+                        Integer.parseInt(values[6].trim())  // PersonalityScore
                 );
                 teamMap.putIfAbsent(teamId, new Team(teamId));
                 teamMap.get(teamId).addMember(p);
@@ -120,6 +124,70 @@ public class CSVDataHandler {
                 }
             }
         }
+    }
+
+    /**
+     * Saves teams to CSV file, then appends leftovers with TeamID = 0
+     */
+    public static void saveTeamsWithLeftovers(List<Team> teams, List<Participant> leftovers, String filePath) throws IOException {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
+            bw.write("TeamID,MemberID,Name,PreferredGame,SkillLevel,Role,PersonalityScore\n");
+
+            // Save regular teams
+            for (Team team : teams) {
+                for (Participant p : team.getMembers()) {
+                    bw.write(String.format("%d,%s,%s,%s,%d,%s,%d\n",
+                            team.getTeamId(),
+                            p.getId(),
+                            p.getName(),
+                            p.getPreferredGame(),
+                            p.getSkillLevel(),
+                            p.getPreferredRole(),
+                            p.getPersonalityScore()));
+                }
+            }
+
+            // Save leftovers with TeamID = 0
+            for (Participant p : leftovers) {
+                bw.write(String.format("0,%s,%s,%s,%d,%s,%d\n",
+                        p.getId(),
+                        p.getName(),
+                        p.getPreferredGame(),
+                        p.getSkillLevel(),
+                        p.getPreferredRole(),
+                        p.getPersonalityScore()));
+            }
+        }
+    }
+
+    /**
+     * Loads leftover participants (TeamID = 0) from an event's team formation file
+     */
+    public static List<Participant> loadLeftovers(String filePath) throws IOException {
+        List<Participant> leftovers = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            br.readLine(); // skip header
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",");
+                int teamId = Integer.parseInt(values[0].trim());
+
+                // Only load participants with TeamID = 0
+                if (teamId == 0) {
+                    Participant p = new Participant(
+                            values[1].trim(),  // MemberID
+                            values[2].trim(),  // Name
+                            "",                // Email
+                            values[3].trim(),  // PreferredGame
+                            Integer.parseInt(values[4].trim()),  // SkillLevel
+                            Role.valueOf(values[5].trim().toUpperCase()),  // Role
+                            Integer.parseInt(values[6].trim())  // PersonalityScore
+                    );
+                    leftovers.add(p);
+                }
+            }
+        }
+        return leftovers;
     }
 
     /**

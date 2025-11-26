@@ -87,11 +87,6 @@ public class TeamBuilder {
         // Final validation
         validateTeams(teams, teamSize);
 
-        // Display leftover participants
-        if (!leftoverParticipants.isEmpty()) {
-            displayLeftoverParticipants();
-        }
-
         return teams;
     }
 
@@ -221,7 +216,7 @@ public class TeamBuilder {
     }
 
     /**
-     * Validate and display statistics
+     * Validate
      */
     private static void validateTeams(List<Team> teams, int teamSize) {
         // Check all teams have exact size
@@ -231,60 +226,6 @@ public class TeamBuilder {
                         " has " + team.getSize() + " members instead of " + teamSize);
             }
         }
-
-        // Display statistics
-        System.out.println("\n=== Team Formation Statistics ===");
-        System.out.println("Total Teams Formed: " + teams.size());
-
-        double avgSkill = teams.stream()
-                .mapToDouble(Team::getAverageSkill)
-                .average()
-                .orElse(0.0);
-        System.out.println("Overall Average Skill: " + String.format("%.2f", avgSkill));
-
-        double maxSkill = teams.stream()
-                .mapToDouble(Team::getAverageSkill)
-                .max()
-                .orElse(0.0);
-        double minSkill = teams.stream()
-                .mapToDouble(Team::getAverageSkill)
-                .min()
-                .orElse(0.0);
-        System.out.println("Skill Range: " + String.format("%.2f", minSkill) +
-                " - " + String.format("%.2f", maxSkill));
-        System.out.println("Skill Variance: " + String.format("%.2f", maxSkill - minSkill));
-
-        // Count teams with good diversity
-        int goodGameDiversity = 0;
-        int goodRoleDiversity = 0;
-        int hasLeader = 0;
-        int hasThinker = 0;
-
-        for (Team team : teams) {
-            if (team.hasGoodGameDiversity()) goodGameDiversity++;
-            if (team.hasRoleDiversity(teamSize)) goodRoleDiversity++;
-
-            Map<PersonalityType, Long> personalityCount = team.getPersonalityCount();
-            if (personalityCount.getOrDefault(PersonalityType.LEADER, 0L) > 0) hasLeader++;
-            if (personalityCount.getOrDefault(PersonalityType.THINKER, 0L) > 0) hasThinker++;
-        }
-
-        System.out.println("\nDiversity Statistics:");
-        System.out.println("Teams with good game diversity: " + goodGameDiversity + "/" + teams.size());
-        System.out.println("Teams with good role diversity: " + goodRoleDiversity + "/" + teams.size());
-        System.out.println("Teams with at least 1 leader: " + hasLeader + "/" + teams.size());
-        System.out.println("Teams with at least 1 thinker: " + hasThinker + "/" + teams.size());
-        System.out.println("=================================\n");
-    }
-
-    private static void displayLeftoverParticipants() {
-        System.out.println("\n=== Leftover Participants ===");
-        System.out.println("The following participants will be assigned to teams once more players register:\n");
-        for (Participant p : leftoverParticipants) {
-            System.out.println("  - " + p.toString());
-        }
-        System.out.println("\nTotal Leftovers: " + leftoverParticipants.size());
-        System.out.println("=============================\n");
     }
 
     public static List<Participant> getLeftoverParticipants() {
