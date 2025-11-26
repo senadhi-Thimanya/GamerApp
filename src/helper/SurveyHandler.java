@@ -13,6 +13,7 @@ public class SurveyHandler {
 
     /**
      * Conducts survey for existing users (updates their information)
+     * Now uses threading for concurrent processing
      */
     public static void conductSurvey() {
         System.out.println("\n=== Gaming Club Survey ===");
@@ -43,18 +44,29 @@ public class SurveyHandler {
                 data.personalityScore
         );
 
-        // Save updated participant data
+        // Process survey using thread
+        System.out.println("\nProcessing your survey data...");
+        SurveyProcessingThread surveyThread = new SurveyProcessingThread(updatedParticipant, PARTICIPANTS_FILE);
+        surveyThread.start();
+
         try {
-            CSVDataHandler.updateParticipant(updatedParticipant, PARTICIPANTS_FILE);
-            displaySurveyResults(updatedParticipant, "updated");
-        } catch (IOException e) {
-            System.err.println("Error saving survey results: " + e.getMessage());
-            e.printStackTrace();
+            surveyThread.join(); // Wait for thread to complete
+
+            if (surveyThread.isSuccess()) {
+                displaySurveyResults(updatedParticipant, "updated");
+            } else {
+                System.err.println("Error saving survey results: " + surveyThread.getError().getMessage());
+                surveyThread.getError().printStackTrace();
+            }
+        } catch (InterruptedException e) {
+            System.err.println("Survey processing was interrupted: " + e.getMessage());
+            Thread.currentThread().interrupt();
         }
     }
 
     /**
      * Conducts survey for new users during registration
+     * Uses threading for processing
      */
     public static Participant conductSurveyForNewUser(String id, String name, String email) {
         System.out.println("=== Complete Your Profile ===\n");
@@ -81,6 +93,46 @@ public class SurveyHandler {
         displaySurveyResults(newParticipant, "created");
 
         return newParticipant;
+    }
+
+    /**
+     * Batch process multiple surveys concurrently (for admin use or bulk operations)
+     */
+    public static void processSurveysInParallel(java.util.List<Participant> participants, String filePath) {
+        System.out.println("\n=== Processing " + participants.size() + " surveys in parallel ===");
+
+        java.util.List<SurveyProcessingThread> threads = new java.util.ArrayList<>();
+
+        // Create and start threads
+        for (Participant p : participants) {
+            SurveyProcessingThread thread = new SurveyProcessingThread(p, filePath);
+            threads.add(thread);
+            thread.start();
+        }
+
+        // Wait for all threads to complete
+        int successCount = 0;
+        int failureCount = 0;
+
+        for (SurveyProcessingThread thread : threads) {
+            try {
+                thread.join();
+                if (thread.isSuccess()) {
+                    successCount++;
+                } else {
+                    failureCount++;
+                }
+            } catch (InterruptedException e) {
+                System.err.println("Thread interrupted: " + e.getMessage());
+                Thread.currentThread().interrupt();
+                failureCount++;
+            }
+        }
+
+        System.out.println("\n=== Batch Processing Complete ===");
+        System.out.println("Successfully processed: " + successCount);
+        System.out.println("Failed: " + failureCount);
+        System.out.println("================================\n");
     }
 
     /**

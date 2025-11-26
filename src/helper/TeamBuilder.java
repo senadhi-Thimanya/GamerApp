@@ -11,7 +11,11 @@ public class TeamBuilder {
 
     private static final Random random = new Random();
     private static List<Participant> leftoverParticipants = new ArrayList<>();
+    private static final int PARALLEL_THRESHOLD = 10; // Use parallel processing if more than 10 participants
 
+    /**
+     * Forms teams with optional parallel processing for large datasets
+     */
     public static List<Team> formTeams(List<Participant> participants, int teamSize) {
         if (participants.isEmpty()) {
             throw new IllegalArgumentException("No participants to form teams");
@@ -35,15 +39,39 @@ public class TeamBuilder {
         System.out.println("Team Size: " + teamSize);
         System.out.println("Teams to Form: " + totalTeams);
         System.out.println("Leftover Participants: " + leftoverCount);
+
+        // Decide whether to use parallel processing
+        boolean useParallel = participants.size() >= PARALLEL_THRESHOLD;
+        System.out.println("Processing Mode: " + (useParallel ? "PARALLEL (Multi-threaded)" : "SEQUENTIAL"));
         System.out.println("================================\n");
 
-        // Create teams
+        List<Team> teams;
+        if (useParallel) {
+            teams = formTeamsParallel(participants, teamSize, totalTeams);
+        } else {
+            teams = formTeamsSequential(participants, teamSize, totalTeams);
+        }
+
+        // Balance skills
+        balanceTeamSkills(teams, teamSize);
+
+        // Final validation
+        validateTeams(teams, teamSize);
+
+        return teams;
+    }
+
+    /**
+     * Sequential team formation (original method)
+     */
+    private static List<Team> formTeamsSequential(List<Participant> participants, int teamSize, int totalTeams) {
+        System.out.println("Using sequential processing...");
+
         List<Team> teams = new ArrayList<>();
         for (int i = 0; i < totalTeams; i++) {
             teams.add(new Team(i + 1));
         }
 
-        // Separate participants into those who will be in teams and leftovers
         leftoverParticipants.clear();
 
         // Shuffle for fairness
@@ -81,13 +109,79 @@ public class TeamBuilder {
         // Simple round-robin distribution
         distributeRoundRobin(teams, leaders, thinkers, balanced, teamSize);
 
-        // Balance skills
-        balanceTeamSkills(teams, teamSize);
-
-        // Final validation
-        validateTeams(teams, teamSize);
-
         return teams;
+    }
+
+    /**
+     * Parallel team formation using threads
+     */
+    private static List<Team> formTeamsParallel(List<Participant> participants, int teamSize, int totalTeams) {
+        System.out.println("Using parallel processing with " + totalTeams + " threads...");
+
+        leftoverParticipants.clear();
+
+        // Shuffle for fairness
+        List<Participant> shuffledParticipants = new ArrayList<>(participants);
+        Collections.shuffle(shuffledParticipants, random);
+
+        // Separate into teams pool and leftovers
+        List<Participant> toAssign = new ArrayList<>(shuffledParticipants.subList(0, totalTeams * teamSize));
+        leftoverParticipants.addAll(shuffledParticipants.subList(totalTeams * teamSize, shuffledParticipants.size()));
+
+        // Create a synchronized list to track used participants
+        List<Participant> usedParticipants = Collections.synchronizedList(new ArrayList<>());
+        List<TeamFormationThread> threads = new ArrayList<>();
+        List<Team> formedTeams = Collections.synchronizedList(new ArrayList<>());
+
+        // Create and start threads for each team
+        for (int i = 0; i < totalTeams; i++) {
+            // Create a copy of available participants for this thread
+            List<Participant> availableForTeam = new ArrayList<>(toAssign);
+
+            TeamFormationThread thread = new TeamFormationThread(i + 1, teamSize, availableForTeam);
+            threads.add(thread);
+            thread.start();
+
+            // Small delay to stagger thread starts
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        // Wait for all threads to complete
+        System.out.println("Waiting for all threads to complete...");
+        for (TeamFormationThread thread : threads) {
+            try {
+                thread.join();
+
+                if (thread.isSuccess()) {
+                    Team team = thread.getFormedTeam();
+                    formedTeams.add(team);
+
+                    // Mark participants as used
+                    synchronized (usedParticipants) {
+                        usedParticipants.addAll(thread.getUsedParticipants());
+                    }
+
+                    // Remove used participants from the pool
+                    synchronized (toAssign) {
+                        toAssign.removeAll(thread.getUsedParticipants());
+                    }
+                }
+            } catch (InterruptedException e) {
+                System.err.println("Thread interrupted: " + e.getMessage());
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        System.out.println("All threads completed. Formed " + formedTeams.size() + " teams.");
+
+        // Sort teams by ID
+        formedTeams.sort(Comparator.comparingInt(Team::getTeamId));
+
+        return formedTeams;
     }
 
     /**
@@ -216,7 +310,7 @@ public class TeamBuilder {
     }
 
     /**
-     * Validate
+     * Validate teams
      */
     private static void validateTeams(List<Team> teams, int teamSize) {
         // Check all teams have exact size
