@@ -13,32 +13,32 @@ public class GamerInterface {
     private static final Scanner sc = new Scanner(System.in);
 
     public static void launch() {
-        System.out.print("Are you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
+        System.out.print("\nAre you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
         String choice = sc.nextLine().trim();
 
         if (choice.equals("1")) {
-            System.out.print("What is your id? ");
+            System.out.print("\nWhat is your id? ");
             String id = sc.nextLine().trim();
-            if (LoginHandler.gamerLogin(id)) System.out.println("Login successful. Welcome back!");
+            if (LoginHandler.gamerLogin(id)) System.out.println("\n\tLogin successful. Welcome back!");
             else {
-                System.out.println("Login failed. Exiting application.");
+                System.out.println("\n\tLogin failed. Exiting application.");
                 return;
             }
         }
         else if (choice.equals("2")) LoginHandler.gamerRegister(); // get the personal details first
         else {
-            System.out.println("Invalid choice. Exiting application.");
+            System.out.println("\n\tInvalid choice. Exiting application.");
             return;
         }
 
         gamerMenu();
         while(true) {
-            System.out.print("Do you want to perform another action? 1. yes 2. no : ");
+            System.out.print("\nDo you want to perform another action? 1. yes 2. no : ");
             String again = sc.nextLine().trim().toLowerCase();
             if (again.equals("1")) {
                 gamerMenu();
             } else {
-                System.out.println("Exiting Gamer Interface. Goodbye!");
+                System.out.println("\n\tExiting Gamer Interface. Goodbye!");
                 break;
             }
 
@@ -65,25 +65,29 @@ public class GamerInterface {
                 viewEvents();
                 break;
             default:
-                System.out.println("Invalid option selected.");
+                System.out.println("\n\tInvalid option selected.");
         }
     }
 
     public static int getUserOptions() {
-        System.out.println("Gamer Options:");
+        System.out.println("┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏━┓┏━┓╺┳╸╻┏━┓┏┓╻┏━┓ \n" +
+                "┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┃ ┃┣━┛ ┃ ┃┃ ┃┃┗┫┗━┓╹\n" +
+                "┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ┗━┛╹   ╹ ╹┗━┛╹ ╹┗━┛╹");
         System.out.println("1. Take the Survey"); // Will update details if already a user
         System.out.println("2. View Team Assignment"); // per event. So name of the event needed
         System.out.println("3. View personal details");
         System.out.println("4. Update personal details");
         System.out.println("5. View all Events");
-        System.out.print("Enter your choice: ");
+        System.out.print("\tEnter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
         return choice;
     }
 
     public static void viewTeamAssignment() {
-        System.out.println("=== View Team Assignment ===");
+        System.out.println("╻ ╻╻┏━╸╻ ╻   ╺┳╸┏━╸┏━┓┏┳┓   ┏━┓┏━┓┏━┓╻┏━╸┏┓╻┏┳┓┏━╸┏┓╻╺┳╸\n" +
+                "┃┏┛┃┣╸ ┃╻┃    ┃ ┣╸ ┣━┫┃┃┃   ┣━┫┗━┓┗━┓┃┃╺┓┃┗┫┃┃┃┣╸ ┃┗┫ ┃ \n" +
+                "┗┛ ╹┗━╸┗┻┛    ╹ ┗━╸╹ ╹╹ ╹   ╹ ╹┗━┛┗━┛╹┗━┛╹ ╹╹ ╹┗━╸╹ ╹ ╹ ");
 
         // Ask for event name
         System.out.print("Enter Event Name: ");
@@ -99,8 +103,8 @@ public class GamerInterface {
         // Check if file exists
         java.io.File file = new java.io.File(filePath);
         if (!file.exists() || !file.isFile()) {
-            System.out.println("Error: No team formation found for event '" + eventName + "'");
-            System.out.println("Please check the event name and try again.");
+            System.out.println("\tError: No team formation found for event '" + eventName + "'");
+            System.out.println("\tPlease check the event name and try again.");
             return;
         }
 
@@ -134,35 +138,39 @@ public class GamerInterface {
             }
 
             if (!found) {
-                System.out.println("Participant ID '" + participantId + "' not found in event '" + eventName + "'");
-                System.out.println("Please verify your ID and ensure you're registered for this event.");
+                System.out.println("\tParticipant ID '" + participantId + "' not found in event '" + eventName + "'");
+                System.out.println("\tPlease verify your ID and ensure you're registered for this event.");
             }
 
         } catch (IOException e) {
-            System.err.println("Error reading team formation: " + e.getMessage());
+            System.err.println("\tError reading team formation: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public static void viewEvents(){
-        System.out.println("=== All Events ===");
+        System.out.println("┏━┓╻  ╻     ┏━╸╻ ╻┏━╸┏┓╻╺┳╸┏━┓\n" +
+                "┣━┫┃  ┃     ┣╸ ┃┏┛┣╸ ┃┗┫ ┃ ┗━┓\n" +
+                "╹ ╹┗━╸┗━╸   ┗━╸┗┛ ┗━╸╹ ╹ ╹ ┗━┛");
         try {
             List<Event> events = CSVDataHandler.loadEvents("TeamFormations/");
             if (events == null || events.isEmpty()) {
-                System.out.println("No events found.");
+                System.out.println("\tNo events found.");
                 return;
             }
             for (int i = 0; i < events.size(); i++) {
                 System.out.println((i + 1) + ". " + events.get(i));
             }
         } catch (IOException e) {
-            System.err.println("Error loading events: " + e.getMessage());
+            System.err.println("\tError loading events: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public static void viewPersonalDetails() {
-        System.out.println("\n=== View Personal Details ===");
+        System.out.println("╻ ╻╻┏━╸╻ ╻   ┏━┓┏━╸┏━┓┏━┓┏━┓┏┓╻┏━┓╻     ╺┳┓┏━╸╺┳╸┏━┓╻╻  ┏━┓\n" +
+                "┃┏┛┃┣╸ ┃╻┃   ┣━┛┣╸ ┣┳┛┗━┓┃ ┃┃┗┫┣━┫┃      ┃┃┣╸  ┃ ┣━┫┃┃  ┗━┓\n" +
+                "┗┛ ╹┗━╸┗┻┛   ╹  ┗━╸╹┗╸┗━┛┗━┛╹ ╹╹ ╹┗━╸   ╺┻┛┗━╸ ╹ ╹ ╹╹┗━╸┗━┛");
         System.out.print("Enter your Participant ID: ");
         String id = sc.nextLine().trim();
 
@@ -192,7 +200,9 @@ public class GamerInterface {
     }
 
     public static void updatePersonalDetails() {
-        System.out.println("\n=== Update Personal Details ===");
+        System.out.println("╻ ╻┏━┓╺┳┓┏━┓╺┳╸┏━╸   ┏━┓┏━╸┏━┓┏━┓┏━┓┏┓╻┏━┓╻     ╺┳┓┏━╸╺┳╸┏━┓╻╻  ┏━┓\n" +
+                "┃ ┃┣━┛ ┃┃┣━┫ ┃ ┣╸    ┣━┛┣╸ ┣┳┛┗━┓┃ ┃┃┗┫┣━┫┃      ┃┃┣╸  ┃ ┣━┫┃┃  ┗━┓\n" +
+                "┗━┛╹  ╺┻┛╹ ╹ ╹ ┗━╸   ╹  ┗━╸╹┗╸┗━┛┗━┛╹ ╹╹ ╹┗━╸   ╺┻┛┗━╸ ╹ ╹ ╹╹┗━╸┗━┛");
         System.out.print("Enter your Participant ID: ");
         String id = sc.nextLine().trim();
 
@@ -200,7 +210,7 @@ public class GamerInterface {
             entity.Participant participant = CSVDataHandler.getParticipantDetails(id, "participants.csv");
 
             if (participant == null) {
-                System.out.println("Participant ID '" + id + "' not found.");
+                System.out.println("\tParticipant ID '" + id + "' not found.");
                 return;
             }
 
@@ -234,7 +244,7 @@ public class GamerInterface {
                 if (newEmail.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.edu$")) {
                     break;
                 } else {
-                    System.out.println("Invalid email format. Please use format: name@university.edu");
+                    System.out.println("\tInvalid email format. Please use format: name@university.edu");
                 }
             }
 
@@ -254,7 +264,7 @@ public class GamerInterface {
             System.out.println("===============================\n");
 
         } catch (IOException e) {
-            System.err.println("Error updating participant details: " + e.getMessage());
+            System.err.println("\tError updating participant details: " + e.getMessage());
             e.printStackTrace();
         }
     }

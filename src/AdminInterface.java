@@ -18,18 +18,18 @@ public class AdminInterface {
     public static void launch() {
         //Admin has to be a club member
 
-        System.out.print("What is your ID? ");
+        System.out.print("\nWhat is your ID? ");
         String id = sc.nextLine().trim();
         if (!LoginHandler.adminLogin(id)) return; //if id ! then quit
 
         adminMenu();
         while(true) {
-            System.out.print("Do you want to perform another action? 1. yes 2. no : ");
+            System.out.print("\nDo you want to perform another action? 1. yes 2. no : ");
             String again = sc.nextLine().trim().toLowerCase();
             if (again.equals("1")) {
                 adminMenu();
             } else {
-                System.out.println("Exiting Admin Interface. Goodbye!");
+                System.out.println("\n\tExiting Admin Interface. Goodbye!");
                 break;
             }
 
@@ -46,7 +46,7 @@ public class AdminInterface {
                 try {
                     viewTeamFormation();
                 } catch (IOException e) {
-                    System.err.println("Failed to view team formation: " + e.getMessage());
+                    System.err.println("\tFailed to view team formation: " + e.getMessage());
                     e.printStackTrace();
                 }
                 break;
@@ -62,52 +62,60 @@ public class AdminInterface {
             case 6:
                 viewLeftoverParticipants();
                 break;
+            case 7:
+                bulkProcessSurveys();
+                break;
             default:
-                System.out.println("Invalid option selected.");
+                System.out.println("\tInvalid option selected.");
         }
     }
 
     public static int getAdminOptions() {
-        System.out.println("Admin Options:");
+        System.out.println("┏━┓╺┳┓┏┳┓╻┏┓╻   ┏━┓┏━┓╺┳╸╻┏━┓┏┓╻┏━┓ \n" +
+                "┣━┫ ┃┃┃┃┃┃┃┗┫   ┃ ┃┣━┛ ┃ ┃┃ ┃┃┗┫┗━┓╹\n" +
+                "╹ ╹╺┻┛╹ ╹╹╹ ╹   ┗━┛╹   ╹ ╹┗━┛╹ ╹┗━┛╹");
         System.out.println("1. Create new Event Team Formation");
         System.out.println("2. View Teams");
         System.out.println("3. View All Gamers");
         System.out.println("4. View all Events");
         System.out.println("5. View Team Statistics");
         System.out.println("6. View Leftover Participants");
-        System.out.print("Enter your choice: ");
+        System.out.println("7. Bulk Process Surveys (Demo)");
+        System.out.print("\tEnter your choice: ");
         int choice = sc.nextInt();
         sc.nextLine(); // Consume newline
         return choice;
     }
 
     private static void createEventTeamFormation() {
-        System.out.println("Creating a new Event Team Formation...");
+        System.out.println("┏━╸┏━┓┏━╸┏━┓╺┳╸┏━╸   ┏┓╻┏━╸╻ ╻   ┏━╸╻ ╻┏━╸┏┓╻╺┳╸   ╺┳╸┏━╸┏━┓┏┳┓   ┏━╸┏━┓┏━┓┏┳┓┏━┓╺┳╸╻┏━┓┏┓╻\n" +
+                "┃  ┣┳┛┣╸ ┣━┫ ┃ ┣╸    ┃┗┫┣╸ ┃╻┃   ┣╸ ┃┏┛┣╸ ┃┗┫ ┃     ┃ ┣╸ ┣━┫┃┃┃   ┣╸ ┃ ┃┣┳┛┃┃┃┣━┫ ┃ ┃┃ ┃┃┗┫\n" +
+                "┗━╸╹┗╸┗━╸╹ ╹ ╹ ┗━╸   ╹ ╹┗━╸┗┻┛   ┗━╸┗┛ ┗━╸╹ ╹ ╹     ╹ ┗━╸╹ ╹╹ ╹   ╹  ┗━┛╹┗╸╹ ╹╹ ╹ ╹ ╹┗━┛╹ ╹");
         System.out.print("Enter Event Name: ");
         String eventName = sc.nextLine().trim();
 
         if (eventName.isEmpty()) {
-            System.out.println("Event name cannot be empty.");
+            System.out.println("\tEvent name cannot be empty.");
             return;
         }
 
         Event event = new Event(eventName);
-        System.out.println("Event created: " + event);
+        System.out.println("\nEvent created: " + event);
 
         try {
             List<Participant> participants = CSVDataHandler.loadParticipants("participants.csv");
 
             if (participants.isEmpty()) {
-                System.out.println("No participants found. Please ensure participants have registered.");
+                System.out.println("\tNo participants found. Please ensure participants have registered.");
                 return;
             }
 
-            System.out.print("Enter team size: ");
+            System.out.print("\nEnter team size: ");
             int teamSize = sc.nextInt();
             sc.nextLine(); // Consume newline
 
             if (teamSize < 3) {
-                System.out.println("Team size must be at least 3.");
+                System.out.println("\tTeam size must be at least 3.");
                 return;
             }
 
@@ -122,7 +130,7 @@ public class AdminInterface {
             // Save teams and leftovers together
             List<Participant> leftovers = TeamBuilder.getLeftoverParticipants();
             CSVDataHandler.saveTeamsWithLeftovers(teams, leftovers, filePath);
-            System.out.println("Teams and leftovers saved to: " + filePath);
+            System.out.println("\tTeams and leftovers saved to: " + filePath);
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -131,7 +139,9 @@ public class AdminInterface {
     }
 
     private static void viewTeamFormation() throws IOException {
-        System.out.println("Viewing Team Formation...");
+        System.out.println("╻ ╻╻┏━╸╻ ╻   ╺┳╸┏━╸┏━┓┏┳┓   ┏━╸┏━┓┏━┓┏┳┓┏━┓╺┳╸╻┏━┓┏┓╻\n" +
+                "┃┏┛┃┣╸ ┃╻┃    ┃ ┣╸ ┣━┫┃┃┃   ┣╸ ┃ ┃┣┳┛┃┃┃┣━┫ ┃ ┃┃ ┃┃┗┫\n" +
+                "┗┛ ╹┗━╸┗┻┛    ╹ ┗━╸╹ ╹╹ ╹   ╹  ┗━┛╹┗╸╹ ╹╹ ╹ ╹ ╹┗━┛╹ ╹");
         System.out.println("Enter Event Name to view teams: ");
         String eventName = sc.nextLine().trim();
 
@@ -139,7 +149,7 @@ public class AdminInterface {
         java.io.File file = new java.io.File(filePath);
 
         if (!file.exists() || !file.isFile()) {
-            System.out.println("Event team file not found: " + filePath);
+            System.out.println("\tEvent team file not found: " + filePath);
             return;
         }
 
@@ -147,25 +157,27 @@ public class AdminInterface {
             List<Team> teams = CSVDataHandler.loadTeams(filePath);
             teams.forEach(System.out::println);
         } catch (Exception e) {
-            System.err.println("Error reading teams from " + filePath + ": " + e.getMessage());
+            System.err.println("\tError reading teams from " + filePath + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private static void viewAllGamers() {
-        System.out.println("\n=== All Registered Gamers ===");
+        System.out.println("┏━┓╻  ╻     ┏━┓┏━╸┏━╸╻┏━┓╺┳╸┏━╸┏━┓┏━╸╺┳┓   ┏━╸┏━┓┏┳┓┏━╸┏━┓┏━┓\n" +
+                "┣━┫┃  ┃     ┣┳┛┣╸ ┃╺┓┃┗━┓ ┃ ┣╸ ┣┳┛┣╸  ┃┃   ┃╺┓┣━┫┃┃┃┣╸ ┣┳┛┗━┓\n" +
+                "╹ ╹┗━╸┗━╸   ╹┗╸┗━╸┗━┛╹┗━┛ ╹ ┗━╸╹┗╸┗━╸╺┻┛   ┗━┛╹ ╹╹ ╹┗━╸╹┗╸┗━┛");
         try {
             List<Participant> participants = CSVDataHandler.loadParticipants("participants.csv");
             if (participants.isEmpty()) {
-                System.out.println("No gamers registered yet.");
+                System.out.println("\tNo gamers registered yet.");
             } else {
-                System.out.println("Total Gamers: " + participants.size() + "\n");
+                System.out.println("\nTotal Gamers: " + participants.size() + "\n");
                 for (int i = 0; i < participants.size(); i++) {
                     System.out.println((i + 1) + ". " + participants.get(i).toString());
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error loading participants: " + e.getMessage());
+            System.err.println("\tError loading participants: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -175,12 +187,14 @@ public class AdminInterface {
     }
 
     private static void viewLeftoverParticipants() {
-        System.out.println("\n=== View Leftover Participants ===");
+        System.out.println("╻ ╻╻┏━╸╻ ╻   ╻  ┏━╸┏━╸╺┳╸┏━┓╻ ╻┏━╸┏━┓   ┏━┓┏━┓┏━┓╺┳╸╻┏━╸╻┏━┓┏━┓┏┓╻╺┳╸┏━┓\n" +
+                "┃┏┛┃┣╸ ┃╻┃   ┃  ┣╸ ┣╸  ┃ ┃ ┃┃┏┛┣╸ ┣┳┛   ┣━┛┣━┫┣┳┛ ┃ ┃┃  ┃┣━┛┣━┫┃┗┫ ┃ ┗━┓\n" +
+                "┗┛ ╹┗━╸┗┻┛   ┗━╸┗━╸╹   ╹ ┗━┛┗┛ ┗━╸╹┗╸   ╹  ╹ ╹╹┗╸ ╹ ╹┗━╸╹╹  ╹ ╹╹ ╹ ╹ ┗━┛");
         System.out.print("Enter Event Name: ");
         String eventName = sc.nextLine().trim();
 
         if (eventName.isEmpty()) {
-            System.out.println("Event name cannot be empty.");
+            System.out.println("\tEvent name cannot be empty.");
             return;
         }
 
@@ -188,7 +202,7 @@ public class AdminInterface {
         java.io.File file = new java.io.File(filePath);
 
         if (!file.exists() || !file.isFile()) {
-            System.out.println("Event team file not found: " + filePath);
+            System.out.println("\tEvent team file not found: " + filePath);
             return;
         }
 
@@ -196,10 +210,10 @@ public class AdminInterface {
             List<Participant> leftovers = CSVDataHandler.loadLeftovers(filePath);
 
             if (leftovers.isEmpty()) {
-                System.out.println("No leftover participants for event '" + eventName + "'.");
-                System.out.println("All participants have been assigned to teams.");
+                System.out.println("\tNo leftover participants for event '" + eventName + "'.");
+                System.out.println("\tAll participants have been assigned to teams.");
             } else {
-                System.out.println("Event: " + eventName);
+                System.out.println("\nEvent: " + eventName);
                 System.out.println("The following participants are waiting to be assigned to teams:\n");
                 for (int i = 0; i < leftovers.size(); i++) {
                     System.out.println((i + 1) + ". " + leftovers.get(i).toString());
@@ -207,19 +221,21 @@ public class AdminInterface {
                 System.out.println("\nTotal Leftovers: " + leftovers.size());
             }
         } catch (IOException e) {
-            System.err.println("Error loading leftovers: " + e.getMessage());
+            System.err.println("\tError loading leftovers: " + e.getMessage());
             e.printStackTrace();
         }
         System.out.println("===================================\n");
     }
 
     private static void viewTeamStatistics() {
-        System.out.println("\n=== View Team Statistics ===");
+        System.out.println("╻ ╻╻┏━╸╻ ╻   ╺┳╸┏━╸┏━┓┏┳┓   ┏━┓╺┳╸┏━┓╺┳╸╻┏━┓╺┳╸╻┏━╸┏━┓\n" +
+                "┃┏┛┃┣╸ ┃╻┃    ┃ ┣╸ ┣━┫┃┃┃   ┗━┓ ┃ ┣━┫ ┃ ┃┗━┓ ┃ ┃┃  ┗━┓\n" +
+                "┗┛ ╹┗━╸┗┻┛    ╹ ┗━╸╹ ╹╹ ╹   ┗━┛ ╹ ╹ ╹ ╹ ╹┗━┛ ╹ ╹┗━╸┗━┛");
         System.out.print("Enter Event Name: ");
         String eventName = sc.nextLine().trim();
 
         if (eventName.isEmpty()) {
-            System.out.println("Event name cannot be empty.");
+            System.out.println("\tEvent name cannot be empty.");
             return;
         }
 
@@ -227,7 +243,7 @@ public class AdminInterface {
         java.io.File file = new java.io.File(filePath);
 
         if (!file.exists() || !file.isFile()) {
-            System.out.println("Event team file not found: " + filePath);
+            System.out.println("\tEvent team file not found: " + filePath);
             return;
         }
 
@@ -235,7 +251,7 @@ public class AdminInterface {
             List<Team> teams = CSVDataHandler.loadTeams(filePath);
 
             if (teams.isEmpty()) {
-                System.out.println("No teams found for event '" + eventName + "'.");
+                System.out.println("\tNo teams found for event '" + eventName + "'.");
                 return;
             }
 
@@ -357,7 +373,81 @@ public class AdminInterface {
             System.out.println("\n========================================\n");
 
         } catch (IOException e) {
-            System.err.println("Error loading team statistics: " + e.getMessage());
+            System.err.println("\tError loading team statistics: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Bulk process surveys to demonstrate multi-threading
+     * Processes multiple participant surveys concurrently
+     */
+    private static void bulkProcessSurveys() {
+        System.out.println("┏┓ ╻ ╻╻  ╻┏    ┏━┓╻ ╻┏━┓╻ ╻┏━╸╻ ╻   ┏━┓┏━┓┏━┓┏━╸┏━╸┏━┓┏━┓╻┏┓╻┏━╸\n" +
+                "┣┻┓┃ ┃┃  ┣┻┓   ┗━┓┃ ┃┣┳┛┃┏┛┣╸ ┗┳┛   ┣━┛┣┳┛┃ ┃┃  ┣╸ ┗━┓┗━┓┃┃┗┫┃╺┓\n" +
+                "┗━┛┗━┛┗━╸╹ ╹   ┗━┛┗━┛╹┗╸┗┛ ┗━╸ ╹    ╹  ╹┗╸┗━┛┗━╸┗━╸┗━┛┗━┛╹╹ ╹┗━┛");
+        System.out.println("\nThis feature demonstrates multi-threaded survey processing.");
+        System.out.println("Multiple surveys are processed concurrently using separate threads.\n");
+
+        try {
+            List<Participant> allParticipants = CSVDataHandler.loadParticipants("participants.csv");
+
+            if (allParticipants.isEmpty()) {
+                System.out.println("No participants found. Please register some participants first.");
+                return;
+            }
+
+            System.out.println("Total Participants Available: " + allParticipants.size());
+            System.out.print("How many participants to process? (1-" + allParticipants.size() + "): ");
+
+            int count = sc.nextInt();
+            sc.nextLine(); // Consume newline
+
+            if (count < 1 || count > allParticipants.size()) {
+                System.out.println("Invalid count. Using all participants.");
+                count = allParticipants.size();
+            }
+
+            List<Participant> toProcess = allParticipants.subList(0, count);
+
+            System.out.println("\n--- Processing Configuration ---");
+            System.out.println("Participants to process: " + count);
+            System.out.println("Available CPU cores: " + Runtime.getRuntime().availableProcessors());
+            System.out.println("Processing mode: Multi-threaded (Concurrent)");
+            System.out.println("--------------------------------\n");
+
+            // Measure time
+            long startTime = System.currentTimeMillis();
+
+            // Process using threads
+            helper.SurveyHandler.processSurveysInParallel(toProcess, "participants.csv");
+
+            long endTime = System.currentTimeMillis();
+            long totalTime = endTime - startTime;
+
+            // Display performance metrics
+            System.out.println("\n=== Performance Metrics ===");
+            System.out.println("Total Processing Time: " + totalTime + "ms");
+            System.out.println("Average Time per Participant: " + (totalTime / count) + "ms");
+            System.out.println("Throughput: " + String.format("%.2f", (count * 1000.0 / totalTime)) + " participants/second");
+
+            // Show speedup comparison
+            long estimatedSequentialTime = count * 100; // Each takes ~100ms sequentially
+            if (totalTime > 0) {
+                double speedup = (double) estimatedSequentialTime / totalTime;
+                System.out.println("\n--- Concurrency Benefit ---");
+                System.out.println("Estimated Sequential Time: ~" + estimatedSequentialTime + "ms");
+                System.out.println("Actual Parallel Time: " + totalTime + "ms");
+                System.out.println("Speedup Factor: " + String.format("%.2fx faster", speedup));
+            }
+
+            System.out.println("===========================\n");
+
+        } catch (IOException e) {
+            System.err.println("Error loading participants: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Error during bulk processing: " + e.getMessage());
             e.printStackTrace();
         }
     }

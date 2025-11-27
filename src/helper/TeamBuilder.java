@@ -124,21 +124,24 @@ public class TeamBuilder {
         List<Participant> shuffledParticipants = new ArrayList<>(participants);
         Collections.shuffle(shuffledParticipants, random);
 
-        // Separate into teams pool and leftovers
-        List<Participant> toAssign = new ArrayList<>(shuffledParticipants.subList(0, totalTeams * teamSize));
-        leftoverParticipants.addAll(shuffledParticipants.subList(totalTeams * teamSize, shuffledParticipants.size()));
+        // Calculate how many will be assigned and how many are leftovers
+        int toAssignCount = totalTeams * teamSize;
 
-        // Create a synchronized list to track used participants
-        List<Participant> usedParticipants = Collections.synchronizedList(new ArrayList<>());
+        // Create a SHARED synchronized list that all threads will pull from
+        List<Participant> sharedPool = Collections.synchronizedList(
+                new ArrayList<>(shuffledParticipants.subList(0, Math.min(toAssignCount, shuffledParticipants.size())))
+        );
+
+        // Add leftovers
+        if (shuffledParticipants.size() > toAssignCount) {
+            leftoverParticipants.addAll(shuffledParticipants.subList(toAssignCount, shuffledParticipants.size()));
+        }
+
         List<TeamFormationThread> threads = new ArrayList<>();
-        List<Team> formedTeams = Collections.synchronizedList(new ArrayList<>());
 
-        // Create and start threads for each team
+        // Create and start threads for each team - they all share the same pool
         for (int i = 0; i < totalTeams; i++) {
-            // Create a copy of available participants for this thread
-            List<Participant> availableForTeam = new ArrayList<>(toAssign);
-
-            TeamFormationThread thread = new TeamFormationThread(i + 1, teamSize, availableForTeam);
+            TeamFormationThread thread = new TeamFormationThread(i + 1, teamSize, sharedPool);
             threads.add(thread);
             thread.start();
 
@@ -152,22 +155,20 @@ public class TeamBuilder {
 
         // Wait for all threads to complete
         System.out.println("Waiting for all threads to complete...");
+        List<Team> formedTeams = new ArrayList<>();
+
         for (TeamFormationThread thread : threads) {
             try {
                 thread.join();
 
                 if (thread.isSuccess()) {
-                    Team team = thread.getFormedTeam();
-                    formedTeams.add(team);
-
-                    // Mark participants as used
-                    synchronized (usedParticipants) {
-                        usedParticipants.addAll(thread.getUsedParticipants());
-                    }
-
-                    // Remove used participants from the pool
-                    synchronized (toAssign) {
-                        toAssign.removeAll(thread.getUsedParticipants());
+                    formedTeams.add(thread.getFormedTeam());
+                } else {
+                    System.err.println("Warning: Team " + thread.getFormedTeam().getTeamId() +
+                            " was not fully formed");
+                    // Still add it if it has members
+                    if (thread.getFormedTeam().getSize() > 0) {
+                        formedTeams.add(thread.getFormedTeam());
                     }
                 }
             } catch (InterruptedException e) {
@@ -177,6 +178,12 @@ public class TeamBuilder {
         }
 
         System.out.println("All threads completed. Formed " + formedTeams.size() + " teams.");
+
+        // Check if there are participants left in the shared pool (shouldn't happen but just in case)
+        if (!sharedPool.isEmpty()) {
+            System.out.println("Warning: " + sharedPool.size() + " participants remained unassigned");
+            leftoverParticipants.addAll(sharedPool);
+        }
 
         // Sort teams by ID
         formedTeams.sort(Comparator.comparingInt(Team::getTeamId));

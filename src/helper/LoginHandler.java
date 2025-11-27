@@ -16,7 +16,9 @@ public class LoginHandler {
      * Registers a new gamer by collecting their basic information and conducting the survey
      */
     public static boolean gamerRegister() {
-        System.out.println("\n=== New Gamer Registration ===\n");
+        System.out.println("┏┓╻┏━╸╻ ╻   ┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏━┓┏━╸┏━╸╻┏━┓╺┳╸┏━┓┏━┓╺┳╸╻┏━┓┏┓╻\n" +
+                "┃┗┫┣╸ ┃╻┃   ┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┣┳┛┣╸ ┃╺┓┃┗━┓ ┃ ┣┳┛┣━┫ ┃ ┃┃ ┃┃┗┫\n" +
+                "╹ ╹┗━╸┗┻┛   ┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ╹┗╸┗━╸┗━┛╹┗━┛ ╹ ╹┗╸╹ ╹ ╹ ╹┗━┛╹ ╹");
 
         try {
             // Generate new ID using CSVDataHandler
