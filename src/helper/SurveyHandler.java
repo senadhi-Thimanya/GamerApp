@@ -15,14 +15,16 @@ public class SurveyHandler {
      * Conducts survey for existing users (updates their information)
      * Now uses threading for concurrent processing
      */
-    public static void conductSurvey() {
-        System.out.println("\n=== Gaming Club Survey ===");
-        System.out.println("This survey will help us understand your gaming preferences and personality.\n");
+    public static void conductSurvey(String loggedInUserId) {
+        System.out.println("┏┓╻┏━╸╻ ╻   ┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏━╸┏━┓┏┳┓╻┏┓╻┏━╸   ┏━╸╻  ╻ ╻┏┓    ┏━┓╻ ╻┏━┓╻ ╻┏━╸╻ ╻\n" +
+                "┃┗┫┣╸ ┃╻┃   ┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┃╺┓┣━┫┃┃┃┃┃┗┫┃╺┓   ┃  ┃  ┃ ┃┣┻┓   ┗━┓┃ ┃┣┳┛┃┏┛┣╸ ┗┳┛\n" +
+                "╹ ╹┗━╸┗┻┛   ┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ┗━┛╹ ╹╹ ╹╹╹ ╹┗━┛   ┗━╸┗━╸┗━┛┗━┛   ┗━┛┗━┛╹┗╸┗┛ ┗━╸ ╹ ");
+        System.out.println("\nThis survey will help us understand your gaming preferences and personality.\n");
 
-        System.out.print("Enter your Participant ID: ");
-        String participantId = sc.nextLine().trim();
+        //System.out.print("Enter your Participant ID: ");
+        //String participantId = sc.nextLine().trim();
 
-        Participant existingParticipant = LoginHandler.userExists(participantId);
+        Participant existingParticipant = LoginHandler.userExists(loggedInUserId);
         if (existingParticipant == null) {
             System.out.println("Participant ID not found. Please register first.");
             return;
@@ -69,7 +71,9 @@ public class SurveyHandler {
      * Uses threading for processing
      */
     public static Participant conductSurveyForNewUser(String id, String name, String email) {
-        System.out.println("=== Complete Your Profile ===\n");
+        System.out.println("┏━╸┏━┓┏┳┓┏━┓╻  ┏━╸╺┳╸┏━╸   ╻ ╻┏━┓╻ ╻┏━┓   ┏━┓┏━┓┏━┓┏━╸╻╻  ┏━╸\n" +
+                "┃  ┃ ┃┃┃┃┣━┛┃  ┣╸  ┃ ┣╸    ┗┳┛┃ ┃┃ ┃┣┳┛   ┣━┛┣┳┛┃ ┃┣╸ ┃┃  ┣╸ \n" +
+                "┗━╸┗━┛╹ ╹╹  ┗━╸┗━╸ ╹ ┗━╸    ╹ ┗━┛┗━┛╹┗╸   ╹  ╹┗╸┗━┛╹  ╹┗━╸┗━╸");
 
         // Collect survey data
         SurveyData data = collectSurveyData();

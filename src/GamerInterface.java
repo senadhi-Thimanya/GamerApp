@@ -11,6 +11,7 @@ import static helper.SurveyHandler.conductSurvey;
 
 public class GamerInterface {
     private static final Scanner sc = new Scanner(System.in);
+    public static String loggedInUserId;
 
     public static void launch() {
         System.out.print("\nAre you 1. Already a member or 2. A new user? (Enter 1 or 2) : ");
@@ -19,7 +20,10 @@ public class GamerInterface {
         if (choice.equals("1")) {
             System.out.print("\nWhat is your id? ");
             String id = sc.nextLine().trim();
-            if (LoginHandler.gamerLogin(id)) System.out.println("\n\tLogin successful. Welcome back!");
+            if (LoginHandler.gamerLogin(id)) {
+                System.out.println("\n\tLogin successful. Welcome back!");
+                loggedInUserId = id;
+            }
             else {
                 System.out.println("\n\tLogin failed. Exiting application.");
                 return;
@@ -50,7 +54,7 @@ public class GamerInterface {
         int option = getUserOptions();
         switch (option){
             case 1:
-                conductSurvey();
+                conductSurvey(loggedInUserId);
                 break;
             case 2:
                 viewTeamAssignment();
@@ -94,8 +98,8 @@ public class GamerInterface {
         String eventName = sc.nextLine().trim();
 
         // Ask for participant ID
-        System.out.print("Enter your Participant ID: ");
-        String participantId = sc.nextLine().trim();
+        //System.out.print("Enter your Participant ID: ");
+        //String participantId = sc.nextLine().trim();
 
         // Construct the file path
         String filePath = "TeamFormations/" + eventName + "_team_formation.csv";
@@ -116,7 +120,7 @@ public class GamerInterface {
             boolean found = false;
             for (Team team : teams) {
                 for (entity.Participant p : team.getMembers()) {
-                    if (p.getId().equals(participantId)) {
+                    if (p.getId().equals(loggedInUserId)) {
                         found = true;
                         System.out.println("\n=== Your Team Assignment ===");
                         System.out.println("Event: " + eventName);
@@ -126,7 +130,7 @@ public class GamerInterface {
                         System.out.println(p.toString());
                         System.out.println("\n--- Your Teammates ---");
                         for (entity.Participant teammate : team.getMembers()) {
-                            if (!teammate.getId().equals(participantId)) {
+                            if (!teammate.getId().equals(loggedInUserId)) {
                                 System.out.println("  " + teammate.toString());
                             }
                         }
@@ -138,7 +142,7 @@ public class GamerInterface {
             }
 
             if (!found) {
-                System.out.println("\tParticipant ID '" + participantId + "' not found in event '" + eventName + "'");
+                System.out.println("\tParticipant ID '" + loggedInUserId + "' not found in event '" + eventName + "'");
                 System.out.println("\tPlease verify your ID and ensure you're registered for this event.");
             }
 
@@ -171,14 +175,14 @@ public class GamerInterface {
         System.out.println("╻ ╻╻┏━╸╻ ╻   ┏━┓┏━╸┏━┓┏━┓┏━┓┏┓╻┏━┓╻     ╺┳┓┏━╸╺┳╸┏━┓╻╻  ┏━┓\n" +
                 "┃┏┛┃┣╸ ┃╻┃   ┣━┛┣╸ ┣┳┛┗━┓┃ ┃┃┗┫┣━┫┃      ┃┃┣╸  ┃ ┣━┫┃┃  ┗━┓\n" +
                 "┗┛ ╹┗━╸┗┻┛   ╹  ┗━╸╹┗╸┗━┛┗━┛╹ ╹╹ ╹┗━╸   ╺┻┛┗━╸ ╹ ╹ ╹╹┗━╸┗━┛");
-        System.out.print("Enter your Participant ID: ");
-        String id = sc.nextLine().trim();
+        //System.out.print("Enter your Participant ID: ");
+        //String id = sc.nextLine().trim();
 
         try {
-            entity.Participant participant = CSVDataHandler.getParticipantDetails(id, "participants.csv");
+            entity.Participant participant = CSVDataHandler.getParticipantDetails(loggedInUserId, "participants.csv");
 
             if (participant == null) {
-                System.out.println("Participant ID '" + id + "' not found.");
+                System.out.println("Participant ID '" + loggedInUserId + "' not found.");
                 return;
             }
 
@@ -203,14 +207,14 @@ public class GamerInterface {
         System.out.println("╻ ╻┏━┓╺┳┓┏━┓╺┳╸┏━╸   ┏━┓┏━╸┏━┓┏━┓┏━┓┏┓╻┏━┓╻     ╺┳┓┏━╸╺┳╸┏━┓╻╻  ┏━┓\n" +
                 "┃ ┃┣━┛ ┃┃┣━┫ ┃ ┣╸    ┣━┛┣╸ ┣┳┛┗━┓┃ ┃┃┗┫┣━┫┃      ┃┃┣╸  ┃ ┣━┫┃┃  ┗━┓\n" +
                 "┗━┛╹  ╺┻┛╹ ╹ ╹ ┗━╸   ╹  ┗━╸╹┗╸┗━┛┗━┛╹ ╹╹ ╹┗━╸   ╺┻┛┗━╸ ╹ ╹ ╹╹┗━╸┗━┛");
-        System.out.print("Enter your Participant ID: ");
-        String id = sc.nextLine().trim();
+        //System.out.print("Enter your Participant ID: ");
+        //String id = sc.nextLine().trim();
 
         try {
-            entity.Participant participant = CSVDataHandler.getParticipantDetails(id, "participants.csv");
+            entity.Participant participant = CSVDataHandler.getParticipantDetails(loggedInUserId, "participants.csv");
 
             if (participant == null) {
-                System.out.println("\tParticipant ID '" + id + "' not found.");
+                System.out.println("\tParticipant ID '" + loggedInUserId + "' not found.");
                 return;
             }
 
@@ -256,7 +260,7 @@ public class GamerInterface {
             String confirm = sc.nextLine().trim().toLowerCase();
 
             if (confirm.equals("yes") || confirm.equals("y")) {
-                CSVDataHandler.updateParticipantNameEmail(id, newName, newEmail, "participants.csv");
+                CSVDataHandler.updateParticipantNameEmail(loggedInUserId, newName, newEmail, "participants.csv");
                 System.out.println("\nPersonal details updated successfully!");
             } else {
                 System.out.println("\nUpdate cancelled.");
