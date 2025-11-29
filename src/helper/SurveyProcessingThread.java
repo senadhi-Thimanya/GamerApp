@@ -13,12 +13,20 @@ public class SurveyProcessingThread extends Thread {
     private String filePath;
     private boolean success;
     private Exception error;
+    private boolean isNewUser;  // NEW: flag to indicate if this is a new user
 
+    // Constructor for existing users (update)
     public SurveyProcessingThread(Participant participant, String filePath) {
+        this(participant, filePath, false);
+    }
+
+    // Constructor with explicit flag for new/existing user
+    public SurveyProcessingThread(Participant participant, String filePath, boolean isNewUser) {
         this.participant = participant;
         this.filePath = filePath;
         this.success = false;
         this.error = null;
+        this.isNewUser = isNewUser;
     }
 
     @Override
@@ -33,7 +41,12 @@ public class SurveyProcessingThread extends Thread {
             // Save the participant data
             synchronized (CSVDataHandler.class) {
                 // Synchronize file access to prevent concurrent write issues
-                CSVDataHandler.updateParticipant(participant, filePath);
+                if (isNewUser) {
+                    // Add new participant to CSV - aready done in loginHandler
+                } else {
+                    // Update existing participant
+                    CSVDataHandler.updateParticipant(participant, filePath);
+                }
             }
 
             this.success = true;

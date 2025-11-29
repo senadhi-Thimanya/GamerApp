@@ -1,139 +1,165 @@
 package helper;
 
 import entity.*;
+import exception.*;
 
 import java.io.*;
 import java.util.*;
 
 public class CSVDataHandler {
 
-    public static List<Participant> loadParticipants(String filePath) throws IOException {
+    public static List<Participant> loadParticipants(String filePath) throws FileOperationException {
         List<Participant> participants = new ArrayList<>();
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            throw new FileOperationException(filePath, "read", "Participants file does not exist.");
+        }
+
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            br.readLine(); // skip header
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                Participant p = new Participant(
-                        values[0].trim(),
-                        values[1].trim(),
-                        values[2].trim(),
-                        values[3].trim(),
-                        Integer.parseInt(values[4].trim()),
-                        Role.valueOf(values[5].trim().toUpperCase()),
-                        Integer.parseInt(values[6].trim())
-                );
-                participants.add(p);
+            String header = br.readLine();
+            if (header == null) {
+                throw new FileOperationException(filePath, "read", "Participants file is empty.");
             }
+
+            String line;
+            int lineNumber = 1;
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+                if (line.trim().isEmpty()) continue;
+
+                try {
+                    String[] values = line.split(",");
+                    if (values.length < 7) {
+                        System.err.println("Warning: Skipping line " + lineNumber + " - insufficient data");
+                        continue;
+                    }
+
+                    Participant p = new Participant(
+                            values[0].trim(),
+                            values[1].trim(),
+                            values[2].trim(),
+                            values[3].trim(),
+                            Integer.parseInt(values[4].trim()),
+                            Role.valueOf(values[5].trim().toUpperCase()),
+                            Integer.parseInt(values[6].trim())
+                    );
+                    participants.add(p);
+                } catch (NumberFormatException e) {
+                    System.err.println("Warning: Skipping line " + lineNumber + " - invalid number format");
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Warning: Skipping line " + lineNumber + " - invalid role value");
+                }
+            }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "read", e);
         }
         return participants;
     }
 
-    public static List<Admin> loadAdmins(String filePath) throws IOException {
-        List<Admin> admins = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            br.readLine(); // skip header
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                Admin a = new Admin(
-                        values[0].trim(),
-                        values[1].trim(),
-                        values[2].trim()
-                );
-                admins.add(a);
-            }
-        }
-        return admins;
-    }
-
-    public static List<Event> loadEvents(String directoryPath) throws IOException {
+    public static List<Event> loadEvents(String directoryPath) throws FileOperationException {
         List<Event> events = new ArrayList<>();
         File dir = new File(directoryPath);
-        //If directory does not exist or is not a directory, return empty list
-        if (!dir.exists() || !dir.isDirectory()) {
-            return events;
+
+        if (!dir.exists()) {
+            throw new FileOperationException(directoryPath, "read", "Team formations directory does not exist.");
         }
-        File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".csv"));
-        if (files == null) return events;
-        Set<String> seen = new HashSet<>();
-        for (File f : files) {
-            String name = f.getName();
-            int dot = name.lastIndexOf('.');
-            String base = dot > 0 ? name.substring(0, dot) : name;
-            // For filenames like EventName_Team_Formation.csv take substring before first underscore
-            String eventName;
-            int us = base.indexOf('_');
-            if (us > 0) {
-                eventName = base.substring(0, us);
-            } else {
-                // fallback: remove non-alphanumeric characters and take first token
-                String[] parts = base.split("[^A-Za-z0-9]+");
-                if (parts.length == 0) continue;
-                eventName = parts[0];
+
+        if (!dir.isDirectory()) {
+            throw new FileOperationException(directoryPath, "read", "Path is not a directory.");
+        }
+
+        try {
+            File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".csv"));
+            if (files == null) {
+                throw new FileOperationException(directoryPath, "read", "Unable to list files in directory.");
             }
-            eventName = eventName.trim();
-            if (eventName.isEmpty() || seen.contains(eventName)) continue;
-            seen.add(eventName);
-            events.add(new Event(eventName));
+
+            Set<String> seen = new HashSet<>();
+            for (File f : files) {
+                String name = f.getName();
+                int dot = name.lastIndexOf('.');
+                String base = dot > 0 ? name.substring(0, dot) : name;
+
+                String eventName;
+                int us = base.indexOf('_');
+                if (us > 0) {
+                    eventName = base.substring(0, us);
+                } else {
+                    String[] parts = base.split("[^A-Za-z0-9]+");
+                    if (parts.length == 0) continue;
+                    eventName = parts[0];
+                }
+
+                eventName = eventName.trim();
+                if (eventName.isEmpty() || seen.contains(eventName)) continue;
+                seen.add(eventName);
+                events.add(new Event(eventName));
+            }
+        } catch (Exception e) {
+            throw new FileOperationException(directoryPath, "read", e);
         }
+
         return events;
     }
 
-    public static List<Team> loadTeams(String filePath) throws IOException {
+    public static List<Team> loadTeams(String filePath) throws FileOperationException, EventNotFoundException {
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            throw new EventNotFoundException(filePath, "Team formation file does not exist: " + filePath);
+        }
+
         Map<Integer, Team> teamMap = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            br.readLine(); // skip header
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                int teamId = Integer.parseInt(values[0].trim());
-
-                // Skip leftovers (TeamID = 0)
-                if (teamId == 0) continue;
-
-                Participant p = new Participant(
-                        values[1].trim(),  // MemberID
-                        values[2].trim(),  // Name
-                        "",                // Email (not stored in team formation CSV, use empty string)
-                        values[3].trim(),  // PreferredGame
-                        Integer.parseInt(values[4].trim()),  // SkillLevel
-                        Role.valueOf(values[5].trim().toUpperCase()),  // Role
-                        Integer.parseInt(values[6].trim())  // PersonalityScore
-                );
-                teamMap.putIfAbsent(teamId, new Team(teamId));
-                teamMap.get(teamId).addMember(p);
+            String header = br.readLine();
+            if (header == null) {
+                throw new FileOperationException(filePath, "read", "Team formation file is empty.");
             }
+
+            String line;
+            int lineNumber = 1;
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+                if (line.trim().isEmpty()) continue;
+
+                try {
+                    String[] values = line.split(",");
+                    if (values.length < 7) {
+                        System.err.println("Warning: Skipping line " + lineNumber + " - insufficient data");
+                        continue;
+                    }
+
+                    int teamId = Integer.parseInt(values[0].trim());
+                    if (teamId == 0) continue; // Skip leftovers
+
+                    Participant p = new Participant(
+                            values[1].trim(),
+                            values[2].trim(),
+                            "",
+                            values[3].trim(),
+                            Integer.parseInt(values[4].trim()),
+                            Role.valueOf(values[5].trim().toUpperCase()),
+                            Integer.parseInt(values[6].trim())
+                    );
+                    teamMap.putIfAbsent(teamId, new Team(teamId));
+                    teamMap.get(teamId).addMember(p);
+                } catch (NumberFormatException e) {
+                    System.err.println("Warning: Skipping line " + lineNumber + " - invalid number format");
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Warning: Skipping line " + lineNumber + " - invalid role value");
+                }
+            }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "read", e);
         }
         return new ArrayList<>(teamMap.values());
     }
 
-    public static void saveTeams(List<Team> teams, String filePath) throws IOException {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
-            bw.write("TeamID,MemberID,Name,PreferredGame,SkillLevel,Role,PersonalityScore\n");
-            for (Team team : teams) {
-                for (Participant p : team.getMembers()) {
-                    bw.write(String.format("%d,%s,%s,%s,%d,%s,%d\n",  // Changed last %s to %d
-                            team.getTeamId(),
-                            p.getId(),
-                            p.getName(),
-                            p.getPreferredGame(),
-                            p.getSkillLevel(),
-                            p.getPreferredRole(),
-                            p.getPersonalityScore()));  // Changed from getPersonalityType()
-                }
-            }
-        }
-    }
-
-    /**
-     * Saves teams to CSV file, then appends leftovers with TeamID = 0
-     */
-    public static void saveTeamsWithLeftovers(List<Team> teams, List<Participant> leftovers, String filePath) throws IOException {
+    public static void saveTeamsWithLeftovers(List<Team> teams, List<Participant> leftovers, String filePath) throws FileOperationException {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
             bw.write("TeamID,MemberID,Name,PreferredGame,SkillLevel,Role,PersonalityScore\n");
 
-            // Save regular teams
             for (Team team : teams) {
                 for (Participant p : team.getMembers()) {
                     bw.write(String.format("%d,%s,%s,%s,%d,%s,%d\n",
@@ -147,7 +173,6 @@ public class CSVDataHandler {
                 }
             }
 
-            // Save leftovers with TeamID = 0
             for (Participant p : leftovers) {
                 bw.write(String.format("0,%s,%s,%s,%d,%s,%d\n",
                         p.getId(),
@@ -157,43 +182,70 @@ public class CSVDataHandler {
                         p.getPreferredRole(),
                         p.getPersonalityScore()));
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "write", e);
         }
     }
 
-    /**
-     * Loads leftover participants (TeamID = 0) from an event's team formation file
-     */
-    public static List<Participant> loadLeftovers(String filePath) throws IOException {
+    public static List<Participant> loadLeftovers(String filePath) throws FileOperationException, EventNotFoundException {
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            throw new EventNotFoundException(filePath, "Team formation file does not exist: " + filePath);
+        }
+
         List<Participant> leftovers = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            br.readLine(); // skip header
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                int teamId = Integer.parseInt(values[0].trim());
+            String header = br.readLine();
+            if (header == null) {
+                throw new FileOperationException(filePath, "read", "Team formation file is empty.");
+            }
 
-                // Only load participants with TeamID = 0
-                if (teamId == 0) {
-                    Participant p = new Participant(
-                            values[1].trim(),  // MemberID
-                            values[2].trim(),  // Name
-                            "",                // Email
-                            values[3].trim(),  // PreferredGame
-                            Integer.parseInt(values[4].trim()),  // SkillLevel
-                            Role.valueOf(values[5].trim().toUpperCase()),  // Role
-                            Integer.parseInt(values[6].trim())  // PersonalityScore
-                    );
-                    leftovers.add(p);
+            String line;
+            int lineNumber = 1;
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+                if (line.trim().isEmpty()) continue;
+
+                try {
+                    String[] values = line.split(",");
+                    if (values.length < 7) {
+                        System.err.println("Warning: Skipping line " + lineNumber + " - insufficient data");
+                        continue;
+                    }
+
+                    int teamId = Integer.parseInt(values[0].trim());
+                    if (teamId == 0) {
+                        Participant p = new Participant(
+                                values[1].trim(),
+                                values[2].trim(),
+                                "",
+                                values[3].trim(),
+                                Integer.parseInt(values[4].trim()),
+                                Role.valueOf(values[5].trim().toUpperCase()),
+                                Integer.parseInt(values[6].trim())
+                        );
+                        leftovers.add(p);
+                    }
+                } catch (NumberFormatException e) {
+                    System.err.println("Warning: Skipping line " + lineNumber + " - invalid number format");
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Warning: Skipping line " + lineNumber + " - invalid role value");
                 }
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "read", e);
         }
         return leftovers;
     }
 
-    /**
-     * Finds and returns a participant by ID from the CSV file
-     */
-    public static Participant findParticipantById(String id, String filePath) throws IOException {
+    public static Participant findParticipantById(String id, String filePath) throws FileOperationException, ParticipantNotFoundException {
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            throw new FileOperationException(filePath, "read", "Participants file does not exist.");
+        }
+
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             br.readLine(); // skip header
             String line;
@@ -203,21 +255,30 @@ public class CSVDataHandler {
                 String[] values = line.split(",");
                 if (values.length >= 7 && values[0].trim().equals(id)) {
                     return new Participant(
-                            values[0].trim(),  // id
-                            values[1].trim(),  // name
-                            values[2].trim(),  // email
-                            values[3].trim(),  // preferredGame
-                            Integer.parseInt(values[4].trim()),  // skillLevel
-                            Role.valueOf(values[5].trim().toUpperCase()),  // preferredRole
-                            Integer.parseInt(values[6].trim())  // personalityScore
+                            values[0].trim(),
+                            values[1].trim(),
+                            values[2].trim(),
+                            values[3].trim(),
+                            Integer.parseInt(values[4].trim()),
+                            Role.valueOf(values[5].trim().toUpperCase()),
+                            Integer.parseInt(values[6].trim())
                     );
                 }
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "read", e);
         }
-        return null; // Participant not found
+
+        throw new ParticipantNotFoundException(id);
     }
 
-    public static Admin findAdminById(String id, String filePath) throws IOException {
+    public static Admin findAdminById(String id, String filePath) throws FileOperationException, AdminNotFoundException {
+        File file = new File(filePath);
+
+        if (!file.exists()) {
+            throw new FileOperationException(filePath, "read", "Admins file does not exist.");
+        }
+
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             br.readLine(); // skip header
             String line;
@@ -227,43 +288,43 @@ public class CSVDataHandler {
                 String[] values = line.split(",");
                 if (values.length >= 3 && values[0].trim().equals(id)) {
                     return new Admin(
-                            values[0].trim(),  // id
-                            values[1].trim(),  // name
-                            values[2].trim()   // email
+                            values[0].trim(),
+                            values[1].trim(),
+                            values[2].trim()
                     );
                 }
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "read", e);
         }
-        return null;
+
+        throw new AdminNotFoundException(id);
     }
 
-    /**
-     * Updates a participant's information in the CSV file
-     */
-    public static void updateParticipant(Participant updatedParticipant, String filePath) throws IOException {
+    public static void updateParticipant(Participant updatedParticipant, String filePath) throws FileOperationException, ParticipantNotFoundException {
         File inputFile = new File(filePath);
-        File tempFile = new File(filePath.replace(".csv", "_temp.csv"));
 
+        if (!inputFile.exists()) {
+            throw new FileOperationException(filePath, "update", "Participants file does not exist.");
+        }
+
+        File tempFile = new File(filePath.replace(".csv", "_temp.csv"));
         boolean participantFound = false;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
              BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
-            String line;
-            // Copy header
-            line = reader.readLine();
+            String line = reader.readLine();
             if (line != null) {
                 writer.write(line);
                 writer.newLine();
             }
 
-            // Process each line
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] values = line.split(",");
                 if (values.length > 0 && values[0].trim().equals(updatedParticipant.getId())) {
-                    // Write updated participant data
                     writer.write(String.format("%s,%s,%s,%s,%d,%s,%d,%s",
                             updatedParticipant.getId(),
                             updatedParticipant.getName(),
@@ -276,43 +337,38 @@ public class CSVDataHandler {
                     writer.newLine();
                     participantFound = true;
                 } else {
-                    // Copy existing line
                     writer.write(line);
                     writer.newLine();
                 }
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "update", e);
         }
 
-        // Replace original file with updated file
         if (participantFound) {
             if (!inputFile.delete()) {
-                throw new IOException("Could not delete original file");
+                throw new FileOperationException(filePath, "delete", "Could not delete original file");
             }
             if (!tempFile.renameTo(inputFile)) {
-                throw new IOException("Could not rename temp file");
+                throw new FileOperationException(filePath, "rename", "Could not rename temp file");
             }
         } else {
             tempFile.delete();
-            throw new IOException("Participant not found in CSV");
+            throw new ParticipantNotFoundException(updatedParticipant.getId());
         }
     }
 
-    //To change the THINKER to Thinker
     public static String toSentenceCase(String input) {
         if (input == null || input.isEmpty()) {
-            return input; // Return as is if input is null or empty
+            return input;
         }
-        input = input.toLowerCase(); // Convert the entire string to lowercase
-        return input.substring(0, 1).toUpperCase() + input.substring(1); // Capitalize the first letter
+        input = input.toLowerCase();
+        return input.substring(0, 1).toUpperCase() + input.substring(1);
     }
 
-    /**
-     * Generates a new participant ID by reading the last ID from CSV and incrementing
-     */
-    public static String generateNewParticipantId(String filePath) throws IOException {
+    public static String generateNewParticipantId(String filePath) throws FileOperationException {
         File file = new File(filePath);
 
-        // If file doesn't exist, start with P001
         if (!file.exists()) {
             return "P001";
         }
@@ -328,22 +384,21 @@ public class CSVDataHandler {
                     lastId = values[0].trim();
                 }
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "read", e);
         }
 
-        // Extract number from last ID and increment
-        // Assumes format like P001, P002, etc.
-        String numPart = lastId.substring(1); // Remove 'P'
-        int num = Integer.parseInt(numPart);
-        num++;
-
-        // Format with leading zeros (e.g., P001, P002, ..., P099, P100)
-        return String.format("P%03d", num);
+        try {
+            String numPart = lastId.substring(1);
+            int num = Integer.parseInt(numPart);
+            num++;
+            return String.format("P%03d", num);
+        } catch (Exception e) {
+            throw new FileOperationException(filePath, "read", "Invalid participant ID format in file");
+        }
     }
 
-    /**
-     * Adds a new participant to the CSV file
-     */
-    public static void addParticipant(Participant participant, String filePath) throws IOException {
+    public static void addParticipant(Participant participant, String filePath) throws FileOperationException {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath, true))) {
             bw.write(String.format("%s,%s,%s,%s,%d,%s,%d\n",
                     participant.getId(),
@@ -353,85 +408,69 @@ public class CSVDataHandler {
                     participant.getSkillLevel(),
                     participant.getPreferredRole(),
                     participant.getPersonalityScore()));
-        }
-    }
-
-    /**
-     * Checks if a participant ID already exists in the CSV
-     */
-    public static boolean participantExists(String id, String filePath) {
-        try {
-            return findParticipantById(id, filePath) != null;
         } catch (IOException e) {
-            return false;
+            throw new FileOperationException(filePath, "write", e);
         }
     }
 
-    /**
-     * Gets a participant's complete details by ID
-     */
-    public static Participant getParticipantDetails(String id, String filePath) throws IOException {
+    public static Participant getParticipantDetails(String id, String filePath) throws FileOperationException, ParticipantNotFoundException {
         return findParticipantById(id, filePath);
     }
 
-    /**
-     * Updates only name and email for a participant
-     */
-    public static void updateParticipantNameEmail(String id, String newName, String newEmail, String filePath) throws IOException {
+    public static void updateParticipantNameEmail(String id, String newName, String newEmail, String filePath) throws FileOperationException, ParticipantNotFoundException {
         File inputFile = new File(filePath);
-        File tempFile = new File(filePath.replace(".csv", "_temp.csv"));
 
+        if (!inputFile.exists()) {
+            throw new FileOperationException(filePath, "update", "Participants file does not exist.");
+        }
+
+        File tempFile = new File(filePath.replace(".csv", "_temp.csv"));
         boolean participantFound = false;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
              BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
-            String line;
-            // Copy header
-            line = reader.readLine();
+            String line = reader.readLine();
             if (line != null) {
                 writer.write(line);
                 writer.newLine();
             }
 
-            // Process each line
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
 
                 String[] values = line.split(",");
                 if (values.length >= 7 && values[0].trim().equals(id)) {
-                    // Update only name and email, keep everything else
                     writer.write(String.format("%s,%s,%s,%s,%s,%s,%s,%s",
-                            values[0].trim(),  // ID (unchanged)
-                            newName,           // Updated name
-                            newEmail,          // Updated email
-                            values[3].trim(),  // PreferredGame (unchanged)
-                            values[4].trim(),  // SkillLevel (unchanged)
-                            values[5].trim(),  // Role (unchanged)
-                            values[6].trim(),  // PersonalityScore (unchanged)
-                            values.length > 7 ? values[7].trim() : "")); // PersonalityType if exists
+                            values[0].trim(),
+                            newName,
+                            newEmail,
+                            values[3].trim(),
+                            values[4].trim(),
+                            values[5].trim(),
+                            values[6].trim(),
+                            values.length > 7 ? values[7].trim() : ""));
                     writer.newLine();
                     participantFound = true;
                 } else {
-                    // Copy existing line
                     writer.write(line);
                     writer.newLine();
                 }
             }
+        } catch (IOException e) {
+            throw new FileOperationException(filePath, "update", e);
         }
 
-        // Replace original file with updated file
         if (participantFound) {
             if (!inputFile.delete()) {
-                throw new IOException("Could not delete original file");
+                throw new FileOperationException(filePath, "delete", "Could not delete original file");
             }
             if (!tempFile.renameTo(inputFile)) {
-                throw new IOException("Could not rename temp file");
+                throw new FileOperationException(filePath, "rename", "Could not rename temp file");
             }
         } else {
             tempFile.delete();
-            throw new IOException("Participant not found in CSV");
+            throw new ParticipantNotFoundException(id);
         }
     }
-
 }

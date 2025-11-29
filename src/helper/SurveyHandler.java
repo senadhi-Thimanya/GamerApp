@@ -3,6 +3,7 @@ package helper;
 import entity.Participant;
 import entity.PersonalityType;
 import entity.Role;
+import exception.*;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -11,110 +12,109 @@ public class SurveyHandler {
     private static final Scanner sc = new Scanner(System.in);
     private static final String PARTICIPANTS_FILE = "participants.csv";
 
-    /**
-     * Conducts survey for existing users (updates their information)
-     * Now uses threading for concurrent processing
-     */
     public static void conductSurvey(String loggedInUserId) {
         System.out.println("┏┓╻┏━╸╻ ╻   ┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏━╸┏━┓┏┳┓╻┏┓╻┏━╸   ┏━╸╻  ╻ ╻┏┓    ┏━┓╻ ╻┏━┓╻ ╻┏━╸╻ ╻\n" +
-                "┃┗┫┣╸ ┃╻┃   ┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┃╺┓┣━┫┃┃┃┃┃┗┫┃╺┓   ┃  ┃  ┃ ┃┣┻┓   ┗━┓┃ ┃┣┳┛┃┏┛┣╸ ┗┳┛\n" +
+                "┃┗┫┣╸ ┃╻┃   ┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┃╺┓┣━┫┃┃┃┃┃┗┫┃╺┓   ┃  ┃  ┃ ╹┣┻┓   ┗━┓┃ ┃┣┳┛┃┏┛┣╸ ┗┳┛\n" +
                 "╹ ╹┗━╸┗┻┛   ┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ┗━┛╹ ╹╹ ╹╹╹ ╹┗━┛   ┗━╸┗━╸┗━┛┗━┛   ┗━┛┗━┛╹┗╸┗┛ ┗━╸ ╹ ");
         System.out.println("\nThis survey will help us understand your gaming preferences and personality.\n");
 
-        //System.out.print("Enter your Participant ID: ");
-        //String participantId = sc.nextLine().trim();
-
-        Participant existingParticipant = LoginHandler.userExists(loggedInUserId);
-        if (existingParticipant == null) {
-            System.out.println("Participant ID not found. Please register first.");
-            return;
-        }
-
-        System.out.println("Welcome, " + existingParticipant.getName() + "!\n");
-
-        // Collect survey data
-        SurveyData data = collectSurveyData();
-
-        // Create updated participant
-        Participant updatedParticipant = new Participant(
-                existingParticipant.getId(),
-                existingParticipant.getName(),
-                existingParticipant.getEmail(),
-                data.preferredGame,
-                data.skillLevel,
-                data.preferredRole,
-                data.personalityScore
-        );
-
-        // Process survey using thread
-        System.out.println("\nProcessing your survey data...");
-        SurveyProcessingThread surveyThread = new SurveyProcessingThread(updatedParticipant, PARTICIPANTS_FILE);
-        surveyThread.start();
-
         try {
-            surveyThread.join(); // Wait for thread to complete
+            Participant existingParticipant = LoginHandler.userExists(loggedInUserId);
+            System.out.println("Welcome, " + existingParticipant.getName() + "!\n");
 
-            if (surveyThread.isSuccess()) {
-                displaySurveyResults(updatedParticipant, "updated");
-            } else {
-                System.err.println("Error saving survey results: " + surveyThread.getError().getMessage());
-                surveyThread.getError().printStackTrace();
+            SurveyData data = collectSurveyData();
+
+            Participant updatedParticipant = new Participant(
+                    existingParticipant.getId(),
+                    existingParticipant.getName(),
+                    existingParticipant.getEmail(),
+                    data.preferredGame,
+                    data.skillLevel,
+                    data.preferredRole,
+                    data.personalityScore
+            );
+
+            System.out.println("\nProcessing your survey data...");
+            SurveyProcessingThread surveyThread = new SurveyProcessingThread(updatedParticipant, PARTICIPANTS_FILE);
+            surveyThread.start();
+
+            try {
+                surveyThread.join();
+
+                if (surveyThread.isSuccess()) {
+                    displaySurveyResults(updatedParticipant, "updated");
+                } else {
+                    System.err.println("Error saving survey results: " + surveyThread.getError().getMessage());
+                }
+            } catch (InterruptedException e) {
+                System.err.println("Survey processing was interrupted: " + e.getMessage());
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            System.err.println("Survey processing was interrupted: " + e.getMessage());
-            Thread.currentThread().interrupt();
+        } catch (ParticipantNotFoundException e) {
+            System.out.println(e.getMessage());
+            System.out.println("Please register first.");
+        } catch (FileOperationException e) {
+            System.err.println("Error accessing participant data: " + e.getMessage());
         }
     }
 
-    /**
-     * Conducts survey for new users during registration
-     * Uses threading for processing
-     */
     public static Participant conductSurveyForNewUser(String id, String name, String email) {
         System.out.println("┏━╸┏━┓┏┳┓┏━┓╻  ┏━╸╺┳╸┏━╸   ╻ ╻┏━┓╻ ╻┏━┓   ┏━┓┏━┓┏━┓┏━╸╻╻  ┏━╸\n" +
                 "┃  ┃ ┃┃┃┃┣━┛┃  ┣╸  ┃ ┣╸    ┗┳┛┃ ┃┃ ┃┣┳┛   ┣━┛┣┳┛┃ ┃┣╸ ┃┃  ┣╸ \n" +
                 "┗━╸┗━┛╹ ╹╹  ┗━╸┗━╸ ╹ ┗━╸    ╹ ┗━┛┗━┛╹┗╸   ╹  ╹┗╸┗━┛╹  ╹┗━╸┗━╸");
+        try {
+            SurveyData data = collectSurveyData();
 
-        // Collect survey data
-        SurveyData data = collectSurveyData();
+            Participant newParticipant = new Participant(
+                    id,
+                    name,
+                    email,
+                    data.preferredGame,
+                    data.skillLevel,
+                    data.preferredRole,
+                    data.personalityScore
+            );
 
-        // Create new participant object
-        Participant newParticipant = new Participant(
-                id,
-                name,
-                email,
-                data.preferredGame,
-                data.skillLevel,
-                data.preferredRole,
-                data.personalityScore
-        );
+            System.out.println("\nProcessing your survey data...");
+            SurveyProcessingThread surveyThread = new SurveyProcessingThread(newParticipant, PARTICIPANTS_FILE, true);
+            surveyThread.start();
 
-        // Display summary
-        System.out.println("\n=== Profile Summary ===");
-        System.out.println("ID: " + id);
-        System.out.println("Name: " + name);
-        System.out.println("Email: " + email);
-        displaySurveyResults(newParticipant, "created");
+            try {
+                surveyThread.join();
 
-        return newParticipant;
+                if (surveyThread.isSuccess()) {
+                    System.out.println("\n=== Profile Summary ===");
+                    System.out.println("ID: " + id);
+                    System.out.println("Name: " + name);
+                    System.out.println("Email: " + email);
+                    displaySurveyResults(newParticipant, "created");
+                    return newParticipant;
+                } else {
+                    System.err.println("Error saving survey results: " + surveyThread.getError().getMessage());
+                    return null;
+                }
+            } catch (InterruptedException e) {
+                System.err.println("Survey processing was interrupted: " + e.getMessage());
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error during survey: " + e.getMessage());
+            return null;
+        }
     }
 
-    /**
-     * Batch process multiple surveys concurrently (for admin use or bulk operations)
-     */
     public static void processSurveysInParallel(java.util.List<Participant> participants, String filePath) {
         System.out.println("\n=== Processing " + participants.size() + " surveys in parallel ===");
 
         java.util.List<SurveyProcessingThread> threads = new java.util.ArrayList<>();
 
-        // Create and start threads
         for (Participant p : participants) {
             SurveyProcessingThread thread = new SurveyProcessingThread(p, filePath);
             threads.add(thread);
             thread.start();
         }
 
-        // Wait for all threads to complete
         int successCount = 0;
         int failureCount = 0;
 
@@ -139,9 +139,6 @@ public class SurveyHandler {
         System.out.println("================================\n");
     }
 
-    /**
-     * Collects all survey data and returns it in a SurveyData object
-     */
     private static SurveyData collectSurveyData() {
         SurveyData data = new SurveyData();
         data.personalityScore = conductPersonalitySurvey();
@@ -151,9 +148,6 @@ public class SurveyHandler {
         return data;
     }
 
-    /**
-     * Displays survey results in a consistent format
-     */
     private static void displaySurveyResults(Participant participant, String action) {
         System.out.println("\n=== Survey Complete! ===");
         System.out.println("Your Profile:");
@@ -197,7 +191,14 @@ public class SurveyHandler {
         while (true) {
             System.out.print("Your rating (1-5): ");
             try {
-                int rating = Integer.parseInt(sc.nextLine().trim());
+                String input = sc.nextLine().trim();
+
+                if (input.isEmpty()) {
+                    System.out.println("Input cannot be empty. Please enter a number between 1 and 5.");
+                    continue;
+                }
+
+                int rating = Integer.parseInt(input);
                 if (rating >= 1 && rating <= 5) {
                     return rating;
                 }
@@ -221,15 +222,27 @@ public class SurveyHandler {
         while (true) {
             System.out.print("Enter your choice (1-7): ");
             try {
-                int choice = Integer.parseInt(sc.nextLine().trim());
+                String input = sc.nextLine().trim();
+
+                if (input.isEmpty()) {
+                    System.out.println("Input cannot be empty. Please enter a number between 1 and 7.");
+                    continue;
+                }
+
+                int choice = Integer.parseInt(input);
                 if (choice >= 1 && choice <= 6) {
                     System.out.println("Selected: " + games[choice - 1] + "\n");
                     return games[choice - 1];
                 } else if (choice == 7) {
-                    System.out.print("Enter game name: ");
-                    String customGame = sc.nextLine().trim();
-                    System.out.println("Selected: " + customGame + "\n");
-                    return customGame;
+                    while (true) {
+                        System.out.print("Enter game name: ");
+                        String customGame = sc.nextLine().trim();
+                        if (!customGame.isEmpty()) {
+                            System.out.println("Selected: " + customGame + "\n");
+                            return customGame;
+                        }
+                        System.out.println("Game name cannot be empty. Please try again.");
+                    }
                 }
                 System.out.println("Please enter a number between 1 and 7.");
             } catch (NumberFormatException e) {
@@ -258,7 +271,14 @@ public class SurveyHandler {
         while (true) {
             System.out.print("Enter your choice (1-5): ");
             try {
-                int choice = Integer.parseInt(sc.nextLine().trim());
+                String input = sc.nextLine().trim();
+
+                if (input.isEmpty()) {
+                    System.out.println("Input cannot be empty. Please enter a number between 1 and 5.");
+                    continue;
+                }
+
+                int choice = Integer.parseInt(input);
                 if (choice >= 1 && choice <= 5) {
                     System.out.println("Selected: " + roles[choice - 1] + "\n");
                     return roles[choice - 1];
@@ -278,7 +298,14 @@ public class SurveyHandler {
         while (true) {
             System.out.print("Enter your skill level (1-10): ");
             try {
-                int skillLevel = Integer.parseInt(sc.nextLine().trim());
+                String input = sc.nextLine().trim();
+
+                if (input.isEmpty()) {
+                    System.out.println("Input cannot be empty. Please enter a number between 1 and 10.");
+                    continue;
+                }
+
+                int skillLevel = Integer.parseInt(input);
                 if (skillLevel >= 1 && skillLevel <= 10) {
                     System.out.println("Skill Level: " + skillLevel + "/10\n");
                     return skillLevel;
@@ -290,9 +317,6 @@ public class SurveyHandler {
         }
     }
 
-    /**
-     * Inner class to hold survey data
-     */
     private static class SurveyData {
         int personalityScore;
         String preferredGame;

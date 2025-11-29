@@ -2,6 +2,7 @@ package helper;
 
 import entity.Admin;
 import entity.Participant;
+import exception.*;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -11,46 +12,34 @@ public class LoginHandler {
     private static final String PARTICIPANTS_FILE = "participants.csv";
     private static final String ADMINS_FILE = "admins.csv";
     private static final Scanner sc = new Scanner(System.in);
+    private static String newlyRegisteredUserId = null;
 
-    /**
-     * Registers a new gamer by collecting their basic information and conducting the survey
-     */
     public static boolean gamerRegister() {
         System.out.println("┏┓╻┏━╸╻ ╻   ┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏━┓┏━╸┏━╸╻┏━┓╺┳╸┏━┓┏━┓╺┳╸╻┏━┓┏┓╻\n" +
                 "┃┗┫┣╸ ┃╻┃   ┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┣┳┛┣╸ ┃╺┓┃┗━┓ ┃ ┣┳┛┣━┫ ┃ ┃┃ ┃┃┗┫\n" +
                 "╹ ╹┗━╸┗┻┛   ┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ╹┗╸┗━╸┗━┛╹┗━┛ ╹ ╹┗╸╹ ╹ ╹ ╹┗━┛╹ ╹");
 
         try {
-            // Generate new ID using CSVDataHandler
-            String newId = null;
-            try {
-                newId = CSVDataHandler.generateNewParticipantId(PARTICIPANTS_FILE);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            System.out.println("Your assigned ID: " + newId);
+            newlyRegisteredUserId = CSVDataHandler.generateNewParticipantId(PARTICIPANTS_FILE);
 
-            // Get name
+            System.out.println("Your assigned ID: " + newlyRegisteredUserId);
+
             String name = getName();
-
-            // Get and validate email
             String email = getValidEmail();
 
             System.out.println("\nRegistration information collected!");
-            System.out.println("ID: " + newId);
+            System.out.println("ID: " + newlyRegisteredUserId);
             System.out.println("Name: " + name);
             System.out.println("Email: " + email);
             System.out.println("\nNow, please complete the survey to finish your registration.\n");
 
-            // Conduct survey for new user
-            Participant newParticipant = SurveyHandler.conductSurveyForNewUser(newId, name, email);
+            Participant newParticipant = SurveyHandler.conductSurveyForNewUser(newlyRegisteredUserId, name, email);
 
             if (newParticipant != null) {
-                // Add the new participant to CSV using CSVDataHandler
                 CSVDataHandler.addParticipant(newParticipant, PARTICIPANTS_FILE);
                 System.out.println("\n=== Registration Complete! ===");
                 System.out.println("Welcome to the Gaming Club, " + name + "!");
-                System.out.println("Your ID is: " + newId);
+                System.out.println("Your ID is: " + newlyRegisteredUserId);
                 System.out.println("Please remember this ID for future logins.\n");
                 return true;
             } else {
@@ -58,16 +47,15 @@ public class LoginHandler {
                 return false;
             }
 
-        } catch (IOException e) {
+        } catch (FileOperationException e) {
             System.err.println("Error during registration: " + e.getMessage());
-            e.printStackTrace();
+            return false;
+        } catch (Exception e) {
+            System.err.println("Unexpected error during registration: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Gets the user's name with validation
-     */
     private static String getName() {
         while (true) {
             System.out.print("Enter your full name: ");
@@ -83,13 +71,15 @@ public class LoginHandler {
                 continue;
             }
 
+            if (!name.matches("^[\\w\\s-]+$")) {
+                System.out.println("Name can only contain letters, spaces, and underscores.");
+                continue;
+            }
+
             return name;
         }
     }
 
-    /**
-     * Gets and validates email in the format name@university.edu
-     */
     private static String getValidEmail() {
         Pattern emailPattern = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.edu$");
 
@@ -112,45 +102,50 @@ public class LoginHandler {
     }
 
     public static boolean gamerLogin(String id) {
-        if(userExists(id)!=null) return true;
-        else return false;
+        if (id == null || id.trim().isEmpty()) {
+            System.out.println("ID cannot be empty.");
+            return false;
+        }
+
+        try {
+            userExists(id);
+            return true;
+        } catch (ParticipantNotFoundException e) {
+            System.out.println(e.getMessage());
+            return false;
+        } catch (FileOperationException e) {
+            System.err.println("Error accessing participants file: " + e.getMessage());
+            return false;
+        }
     }
 
     public static boolean adminLogin(String id) {
-        if(adminExists(id)!=null) return true;
-        else return false;
-    }
+        if (id == null || id.trim().isEmpty()) {
+            System.out.println("ID cannot be empty.");
+            return false;
+        }
 
-    /**
-     * Loads a participant from the participants.csv file by ID
-     * @param id The participant ID to search for
-     * @return Participant object if found, null otherwise
-     */
-    public static Participant userExists(String id) {
         try {
-            Participant participant = CSVDataHandler.findParticipantById(id, PARTICIPANTS_FILE);
-            if (participant == null) {
-                System.out.println("Participant ID '" + id + "' not found.");
-            }
-            return participant;
-        } catch (java.io.IOException e) {
-            System.err.println("Error reading participants file: " + e.getMessage());
-            e.printStackTrace();
-            return null;
+            adminExists(id);
+            return true;
+        } catch (AdminNotFoundException e) {
+            System.out.println(e.getMessage());
+            return false;
+        } catch (FileOperationException e) {
+            System.err.println("Error accessing admins file: " + e.getMessage());
+            return false;
         }
     }
 
-    public static Admin adminExists(String id) {
-        try {
-            Admin admin = CSVDataHandler.findAdminById(id, ADMINS_FILE);
-            if (admin == null) {
-                System.out.println("Admin ID '" + id + "' not found.");
-            }
-            return admin;
-        } catch (java.io.IOException e) {
-            System.err.println("Error reading participants file: " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
+    public static Participant userExists(String id) throws ParticipantNotFoundException, FileOperationException {
+        return CSVDataHandler.findParticipantById(id, PARTICIPANTS_FILE);
+    }
+
+    public static Admin adminExists(String id) throws AdminNotFoundException, FileOperationException {
+        return CSVDataHandler.findAdminById(id, ADMINS_FILE);
+    }
+
+    public static String getNewlyRegisteredUserId() {
+        return newlyRegisteredUserId;
     }
 }

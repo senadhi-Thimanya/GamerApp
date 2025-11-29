@@ -2,6 +2,7 @@ import entity.Event;
 import entity.Team;
 import helper.CSVDataHandler;
 import helper.LoginHandler;
+import exception.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,23 +21,33 @@ public class GamerInterface {
         if (choice.equals("1")) {
             System.out.print("\nWhat is your id? ");
             String id = sc.nextLine().trim();
+
+            if (id.isEmpty()) {
+                System.out.println("\n\tID cannot be empty. Exiting application.");
+                return;
+            }
+
             if (LoginHandler.gamerLogin(id)) {
                 System.out.println("\n\tLogin successful. Welcome back!");
                 loggedInUserId = id;
-            }
-            else {
+            } else {
                 System.out.println("\n\tLogin failed. Exiting application.");
                 return;
             }
-        }
-        else if (choice.equals("2")) LoginHandler.gamerRegister(); // get the personal details first
-        else {
+        } else if (choice.equals("2")) {
+            boolean registered = LoginHandler.gamerRegister();
+            if (!registered) {
+                System.out.println("\n\tRegistration failed. Exiting application.");
+                return;
+            }
+            loggedInUserId = LoginHandler.getNewlyRegisteredUserId();
+        } else {
             System.out.println("\n\tInvalid choice. Exiting application.");
             return;
         }
 
         gamerMenu();
-        while(true) {
+        while (true) {
             System.out.print("\nDo you want to perform another action? 1. yes 2. no : ");
             String again = sc.nextLine().trim().toLowerCase();
             if (again.equals("1")) {
@@ -45,14 +56,12 @@ public class GamerInterface {
                 System.out.println("\n\tExiting Gamer Interface. Goodbye!");
                 break;
             }
-
         }
-
     }
 
     public static void gamerMenu() {
         int option = getUserOptions();
-        switch (option){
+        switch (option) {
             case 1:
                 conductSurvey(loggedInUserId);
                 break;
@@ -74,18 +83,32 @@ public class GamerInterface {
     }
 
     public static int getUserOptions() {
-        System.out.println("┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏━┓┏━┓╺┳╸╻┏━┓┏┓╻┏━┓ \n" +
-                "┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┃ ┃┣━┛ ┃ ┃┃ ┃┃┗┫┗━┓╹\n" +
-                "┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ┗━┛╹   ╹ ╹┗━┛╹ ╹┗━┛╹");
-        System.out.println("1. Take the Survey"); // Will update details if already a user
-        System.out.println("2. View Team Assignment"); // per event. So name of the event needed
+        System.out.println("┏━╸┏━┓┏┳┓┏━╸┏━┓   ┏┳┓┏━╸┏┓╻╻ ╻\n" +
+                "┃╺┓┣━┫┃┃┃┣╸ ┣┳┛   ┃┃┃┣╸ ┃┗┫┃ ┃\n" +
+                "┗━┛╹ ╹╹ ╹┗━╸╹┗╸   ╹ ╹┗━╸╹ ╹┗━┛");
+        System.out.println("1. Take the Survey");
+        System.out.println("2. View Team Assignment");
         System.out.println("3. View personal details");
         System.out.println("4. Update personal details");
         System.out.println("5. View all Events");
-        System.out.print("\tEnter your choice: ");
-        int choice = sc.nextInt();
-        sc.nextLine(); // Consume newline
-        return choice;
+
+        while (true) {
+            System.out.print("\tEnter your choice: ");
+            try {
+                String input = sc.nextLine().trim();
+                if (input.isEmpty()) {
+                    System.out.println("Input cannot be empty. Please enter a number between 1 and 5.");
+                    continue;
+                }
+                int choice = Integer.parseInt(input);
+                if (choice >= 1 && choice <= 5) {
+                    return choice;
+                }
+                System.out.println("Please enter a number between 1 and 5.");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a number between 1 and 5.");
+            }
+        }
     }
 
     public static void viewTeamAssignment() {
@@ -93,30 +116,19 @@ public class GamerInterface {
                 "┃┏┛┃┣╸ ┃╻┃    ┃ ┣╸ ┣━┫┃┃┃   ┣━┫┗━┓┗━┓┃┃╺┓┃┗┫┃┃┃┣╸ ┃┗┫ ┃ \n" +
                 "┗┛ ╹┗━╸┗┻┛    ╹ ┗━╸╹ ╹╹ ╹   ╹ ╹┗━┛┗━┛╹┗━┛╹ ╹╹ ╹┗━╸╹ ╹ ╹ ");
 
-        // Ask for event name
         System.out.print("Enter Event Name: ");
         String eventName = sc.nextLine().trim();
 
-        // Ask for participant ID
-        //System.out.print("Enter your Participant ID: ");
-        //String participantId = sc.nextLine().trim();
-
-        // Construct the file path
-        String filePath = "TeamFormations/" + eventName + "_team_formation.csv";
-
-        // Check if file exists
-        java.io.File file = new java.io.File(filePath);
-        if (!file.exists() || !file.isFile()) {
-            System.out.println("\tError: No team formation found for event '" + eventName + "'");
-            System.out.println("\tPlease check the event name and try again.");
+        if (eventName.isEmpty()) {
+            System.out.println("\tEvent name cannot be empty.");
             return;
         }
 
+        String filePath = "TeamFormations/" + eventName + "_team_formation.csv";
+
         try {
-            // Load teams from the event file
             List<Team> teams = CSVDataHandler.loadTeams(filePath);
 
-            // Search for the participant in the teams
             boolean found = false;
             for (Team team : teams) {
                 for (entity.Participant p : team.getMembers()) {
@@ -146,13 +158,14 @@ public class GamerInterface {
                 System.out.println("\tPlease verify your ID and ensure you're registered for this event.");
             }
 
-        } catch (IOException e) {
+        } catch (EventNotFoundException e) {
+            System.out.println("\t" + e.getMessage());
+        } catch (FileOperationException e) {
             System.err.println("\tError reading team formation: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
-    public static void viewEvents(){
+    public static void viewEvents() {
         System.out.println("┏━┓╻  ╻     ┏━╸╻ ╻┏━╸┏┓╻╺┳╸┏━┓\n" +
                 "┣━┫┃  ┃     ┣╸ ┃┏┛┣╸ ┃┗┫ ┃ ┗━┓\n" +
                 "╹ ╹┗━╸┗━╸   ┗━╸┗┛ ┗━╸╹ ╹ ╹ ┗━┛");
@@ -165,9 +178,8 @@ public class GamerInterface {
             for (int i = 0; i < events.size(); i++) {
                 System.out.println((i + 1) + ". " + events.get(i));
             }
-        } catch (IOException e) {
+        } catch (FileOperationException e) {
             System.err.println("\tError loading events: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -175,16 +187,9 @@ public class GamerInterface {
         System.out.println("╻ ╻╻┏━╸╻ ╻   ┏━┓┏━╸┏━┓┏━┓┏━┓┏┓╻┏━┓╻     ╺┳┓┏━╸╺┳╸┏━┓╻╻  ┏━┓\n" +
                 "┃┏┛┃┣╸ ┃╻┃   ┣━┛┣╸ ┣┳┛┗━┓┃ ┃┃┗┫┣━┫┃      ┃┃┣╸  ┃ ┣━┫┃┃  ┗━┓\n" +
                 "┗┛ ╹┗━╸┗┻┛   ╹  ┗━╸╹┗╸┗━┛┗━┛╹ ╹╹ ╹┗━╸   ╺┻┛┗━╸ ╹ ╹ ╹╹┗━╸┗━┛");
-        //System.out.print("Enter your Participant ID: ");
-        //String id = sc.nextLine().trim();
 
         try {
             entity.Participant participant = CSVDataHandler.getParticipantDetails(loggedInUserId, "participants.csv");
-
-            if (participant == null) {
-                System.out.println("Participant ID '" + loggedInUserId + "' not found.");
-                return;
-            }
 
             System.out.println("\n--- Your Details ---");
             System.out.println("ID: " + participant.getId() + " (non-editable)");
@@ -197,9 +202,10 @@ public class GamerInterface {
             System.out.println("Personality Type: " + participant.getPersonalityType());
             System.out.println("====================\n");
 
-        } catch (IOException e) {
+        } catch (ParticipantNotFoundException e) {
+            System.out.println(e.getMessage());
+        } catch (FileOperationException e) {
             System.err.println("Error loading participant details: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -207,16 +213,8 @@ public class GamerInterface {
         System.out.println("╻ ╻┏━┓╺┳┓┏━┓╺┳╸┏━╸   ┏━┓┏━╸┏━┓┏━┓┏━┓┏┓╻┏━┓╻     ╺┳┓┏━╸╺┳╸┏━┓╻╻  ┏━┓\n" +
                 "┃ ┃┣━┛ ┃┃┣━┫ ┃ ┣╸    ┣━┛┣╸ ┣┳┛┗━┓┃ ┃┃┗┫┣━┫┃      ┃┃┣╸  ┃ ┣━┫┃┃  ┗━┓\n" +
                 "┗━┛╹  ╺┻┛╹ ╹ ╹ ┗━╸   ╹  ┗━╸╹┗╸┗━┛┗━┛╹ ╹╹ ╹┗━╸   ╺┻┛┗━╸ ╹ ╹ ╹╹┗━╸┗━┛");
-        //System.out.print("Enter your Participant ID: ");
-        //String id = sc.nextLine().trim();
-
         try {
             entity.Participant participant = CSVDataHandler.getParticipantDetails(loggedInUserId, "participants.csv");
-
-            if (participant == null) {
-                System.out.println("\tParticipant ID '" + loggedInUserId + "' not found.");
-                return;
-            }
 
             System.out.println("\nCurrent Details:");
             System.out.println("ID: " + participant.getId() + " (non-editable)");
@@ -226,14 +224,12 @@ public class GamerInterface {
             System.out.println("\n--- Update Information ---");
             System.out.println("Press Enter to keep current value");
 
-            // Update name
             System.out.print("Enter new name (current: " + participant.getName() + "): ");
             String newName = sc.nextLine().trim();
             if (newName.isEmpty()) {
                 newName = participant.getName();
             }
 
-            // Update email with validation
             String newEmail;
             while (true) {
                 System.out.print("Enter new email (current: " + participant.getEmail() + "): ");
@@ -244,7 +240,6 @@ public class GamerInterface {
                     break;
                 }
 
-                // Validate email format: name@university.edu
                 if (newEmail.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.edu$")) {
                     break;
                 } else {
@@ -252,7 +247,6 @@ public class GamerInterface {
                 }
             }
 
-            // Confirm changes
             System.out.println("\nNew Details:");
             System.out.println("Name: " + newName);
             System.out.println("Email: " + newEmail);
@@ -267,9 +261,10 @@ public class GamerInterface {
             }
             System.out.println("===============================\n");
 
-        } catch (IOException e) {
+        } catch (ParticipantNotFoundException e) {
+            System.out.println("\t" + e.getMessage());
+        } catch (FileOperationException e) {
             System.err.println("\tError updating participant details: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }
